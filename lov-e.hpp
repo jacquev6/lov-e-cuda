@@ -19,8 +19,12 @@
 #endif
 
 
+/*                          *
+ * Error checking utilities *
+ *                          */
+
 struct CudaError : public std::exception {
-  CudaError(const char* file_, unsigned line_, cudaError_t error_) :
+  CudaError(const char* const file_, const unsigned line_, const cudaError_t error_) :
       file(file_), line(line_), error(error_) {
     snprintf(
       _what, sizeof(_what),
@@ -32,9 +36,9 @@ struct CudaError : public std::exception {
     return _what;
   }
 
-  const char* file;
-  unsigned line;
-  cudaError_t error;
+  const char* const file;
+  const unsigned line;
+  const cudaError_t error;
 
  private:
   char _what[128];
@@ -42,8 +46,8 @@ struct CudaError : public std::exception {
 
 // @todo Test the __device__ version
 HOST_DEVICE_DECORATORS
-inline void check_cuda_errors_no_sync_(const char* file, unsigned line) {
-  cudaError_t error = cudaGetLastError();
+inline void check_cuda_errors_no_sync_(const char* file, const unsigned line) {
+  const cudaError_t error = cudaGetLastError();
   if (error) {
     #ifdef __CUDA_ARCH__
       printf(
@@ -58,12 +62,16 @@ inline void check_cuda_errors_no_sync_(const char* file, unsigned line) {
 #define check_cuda_errors_no_sync() check_cuda_errors_no_sync_(__FILE__, __LINE__)
 
 HOST_DEVICE_DECORATORS
-inline void check_cuda_errors_(const char* file, unsigned line) {
+inline void check_cuda_errors_(const char* const file, const unsigned line) {
   cudaDeviceSynchronize();
   check_cuda_errors_no_sync_(file, line);
 }
 
 #define check_cuda_errors() check_cuda_errors_(__FILE__, __LINE__)
+
+/*                         *
+ * Basic memory management *
+ *                         */
 
 template<typename T>
 T* alloc_host(const std::size_t n) {
@@ -76,7 +84,7 @@ T* alloc_host(const std::size_t n) {
 
 template<typename T>
 HOST_DEVICE_DECORATORS
-T* alloc_device(std::size_t n) {
+T* alloc_device(const std::size_t n) {
   if (n == 0) {
     return nullptr;
   } else {
@@ -88,27 +96,27 @@ T* alloc_device(std::size_t n) {
 }
 
 template<typename T>
-void memset_host(std::size_t n, char v, T* p) {
+void memset_host(const std::size_t n, const char v, T* const p) {
   std::memset(p, v, n * sizeof(T));
 }
 
 template<typename T>
-void memset_device(std::size_t n, char v, T* p) {
+void memset_device(const std::size_t n, const char v, T* const p) {
   cudaMemset(p, v, n * sizeof(T));
 }
 
 template<typename T>
-void memreset_host(std::size_t n, T* p) {
+void memreset_host(const std::size_t n, T* const p) {
   memset_host(n, 0, p);
 }
 
 template<typename T>
-void memreset_device(std::size_t n, T* p) {
+void memreset_device(const std::size_t n, T* const p) {
   memset_device(n, 0, p);
 }
 
 template<typename T>
-void copy_host_to_device(std::size_t n, const T* src, T* dst) {
+void copy_host_to_device(const std::size_t n, const T* const src, T* const dst) {
   if (n == 0) {
     return;
   } else {
@@ -118,14 +126,14 @@ void copy_host_to_device(std::size_t n, const T* src, T* dst) {
 }
 
 template<typename T>
-T* clone_host_to_device(std::size_t n, const T* src) {
+T* clone_host_to_device(const std::size_t n, const T* const src) {
   T* dst = alloc_device<T>(n);
   copy_host_to_device(n, src, dst);
   return dst;
 }
 
 template<typename T>
-void copy_device_to_host(std::size_t n, const T* src, T* dst) {
+void copy_device_to_host(const std::size_t n, const T* const src, T* const dst) {
   if (n == 0) {
     return;
   } else {
@@ -135,7 +143,7 @@ void copy_device_to_host(std::size_t n, const T* src, T* dst) {
 }
 
 template<typename T>
-T* clone_device_to_host(std::size_t n, const T* src) {
+T* clone_device_to_host(const std::size_t n, const T* const src) {
   T* dst = alloc_host<T>(n);
   copy_device_to_host(n, src, dst);
   return dst;
@@ -152,7 +160,7 @@ void free_host(T* const p) {
 
 template<typename T>
 HOST_DEVICE_DECORATORS
-void free_device(T* p) {
+void free_device(T* const p) {
   if (p == nullptr) {
     return;
   } else {
