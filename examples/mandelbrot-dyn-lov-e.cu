@@ -158,9 +158,6 @@ void check_error(int x0, int y0, int d) {
 }
 
 
-__host__ __device__
-int divup(int x, int y) { return x / y + (x % y ? 1 : 0); }
-
 // Compute the dwell for a single pixel
 __device__
 int pixel_dwell(int w, int h, complex cmin, complex cmax, int x, int y) {
@@ -175,6 +172,9 @@ int pixel_dwell(int w, int h, complex cmin, complex cmax, int x, int y) {
   }
   return dwell;
 }
+
+typedef GridFactory2D<BSX, BSY> grid;
+typedef Block2D<BSX, BSY> block;
 
 // Binary operation for common dwell "reduction": MAX_DWELL + 1 = neutral element, -1 = dwells are different
 #define NEUT_DWELL (MAX_DWELL + 1)
@@ -277,19 +277,16 @@ void mandelbrot_block_k(
   if (threadIdx.x == 0 && threadIdx.y == 0) {
     if (comm_dwell != DIFF_DWELL) {
       // Uniform dwell, just fill
-      const dim3 threads(BSX, BSY);
-      const dim3 blocks(divup(d, BSX), divup(d, BSY));
-      dwell_fill_k<<<blocks, threads>>>(dwells, x0, y0, d, comm_dwell);
+      const Grid grid = grid::make(d, d);
+      dwell_fill_k<<<CONFIG(grid)>>>(dwells, x0, y0, d, comm_dwell);
     } else if (depth + 1 < MAX_DEPTH && d / SUBDIV > MIN_SIZE) {
       // Subdivide recursively
-      const dim3 threads(blockDim.x, blockDim.y);
-      const dim3 blocks(SUBDIV, SUBDIV);
-      mandelbrot_block_k<<<blocks, threads>>>(dwells, cmin, cmax, x0, y0, d / SUBDIV, depth+ 1);
+      const Grid grid = grid::fixed(SUBDIV, SUBDIV);
+      mandelbrot_block_k<<<CONFIG(grid)>>>(dwells, cmin, cmax, x0, y0, d / SUBDIV, depth+ 1);
     } else {
       // Leaf: per-pixel kernel
-      const dim3 threads(BSX, BSY);
-      const dim3 blocks(divup(d, BSX), divup(d, BSY));
-      mandelbrot_pixel_k<<<blocks, threads>>>(dwells, cmin, cmax, x0, y0, d);
+      const Grid grid = grid::make(d, d);
+      mandelbrot_pixel_k<<<CONFIG(grid)>>>(dwells, cmin, cmax, x0, y0, d);
     }
     cucheck_dev(cudaGetLastError());
     check_error(x0, y0, d);
@@ -302,11 +299,10 @@ int main(int, char*[]) {
 
   Array2D<Device, int> d_dwells(h, w);
 
-  const dim3 threads(BSX, BSY);
-  const dim3 blocks(INIT_SUBDIV, INIT_SUBDIV);
+  const Grid grid = grid::fixed(INIT_SUBDIV, INIT_SUBDIV);
 
   const double t1 = omp_get_wtime();
-  mandelbrot_block_k<<<blocks, threads>>>(d_dwells, complex(-1.5, -1), complex(0.5, 1), 0, 0, w / INIT_SUBDIV, 1);
+  mandelbrot_block_k<<<CONFIG(grid)>>>(d_dwells, complex(-1.5, -1), complex(0.5, 1), 0, 0, w / INIT_SUBDIV, 1);
   cucheck(cudaDeviceSynchronize());
   const double t2 = omp_get_wtime();
 

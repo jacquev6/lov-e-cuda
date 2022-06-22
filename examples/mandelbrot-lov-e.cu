@@ -131,8 +131,6 @@ inline __host__ __device__ complex operator/(const complex &a, const complex &b)
 }
 
 
-int divup(int x, int y) { return x / y + (x % y ? 1 : 0); }
-
 // Compute the dwell for a single pixel
 __device__
 int pixel_dwell(int w, int h, complex cmin, complex cmax, int x, int y) {
@@ -148,6 +146,9 @@ int pixel_dwell(int w, int h, complex cmin, complex cmax, int x, int y) {
   return dwell;
 }
 
+typedef GridFactory2D<BSX, BSY> grid;
+typedef Block2D<BSX, BSY> block;
+
 /*
 Compute the dwells for Mandelbrot image
 
@@ -161,8 +162,8 @@ __global__
 void mandelbrot_k(ArrayView2D<Device, int> dwells, complex cmin, complex cmax) {
   const unsigned h = dwells.s1();
   const unsigned w = dwells.s0();
-  const int x = threadIdx.x + blockIdx.x * blockDim.x;
-  const int y = threadIdx.y + blockIdx.y * blockDim.y;
+  const int x = block::x();
+  const int y = block::y();
   dwells[y][x] = pixel_dwell(w, h, cmin, cmax, x, y);
 }
 
@@ -172,11 +173,10 @@ int main(int, char*[]) {
 
   Array2D<Device, int> d_dwells(h, w);
 
-  const dim3 threads(BSX, BSY);
-  const dim3 blocks(divup(w, threads.x), divup(h, threads.y));
+  const Grid grid = grid::make(w, h);
 
   const double t1 = omp_get_wtime();
-  mandelbrot_k<<<blocks, threads>>>(d_dwells, complex(-1.5, -1), complex(0.5, 1));
+  mandelbrot_k<<<CONFIG(grid)>>>(d_dwells, complex(-1.5, -1), complex(0.5, 1));
   cucheck(cudaDeviceSynchronize());
 
   const double t2 = omp_get_wtime();

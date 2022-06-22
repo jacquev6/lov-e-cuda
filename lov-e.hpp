@@ -365,4 +365,75 @@ class Array2D : public ArrayView2D<Where, T> {
 //   Array2D(const Array2D<Where, U>&&) = delete;
 };
 
+
+struct Grid {
+  const dim3 blocks;
+  const dim3 threads;
+};
+
+#define CONFIG(grid) grid.blocks, grid.threads
+
+/*
+  Factories to make Grids with a given number of threads per block.
+*/
+template<unsigned BLOCKDIM_X, unsigned BLOCKDIM_Y>
+struct GridFactory2D {
+  HOST_DEVICE_DECORATORS
+  static Grid make(int x, int y) {
+    return Grid {
+      dim3(
+        (x + BLOCKDIM_X - 1) / BLOCKDIM_X,
+        (y + BLOCKDIM_Y - 1) / BLOCKDIM_Y,
+        1),
+      dim3(BLOCKDIM_X, BLOCKDIM_Y, 1),
+    };
+  }
+
+  HOST_DEVICE_DECORATORS
+  static Grid fixed(int x, int y) {
+    return Grid {
+      dim3(x, y, 1),
+      dim3(BLOCKDIM_X, BLOCKDIM_Y, 1),
+    };
+  }
+};
+
+/*
+*/
+
+#ifdef __NVCC__
+
+/*
+  Structures to factorize the pervasive 'blockIdx.x * blockDim.x + threadIdx.x'.
+  Just replace that with 'Block?D<...>::x()'.
+
+  *Note* that if you first:
+      typedef GridFactory2D<BLOCKDIM_X, BLOCKDIM_Y> grid;
+      typedef Block2D<BLOCKDIM_X, BLOCKDIM_Y> block;
+  then the syntax is much lighter:
+  In the kernel:
+      const unsigned x = block::x();
+      const unsigned y = block::y();
+  At call site:
+      auto grid = grid::make(width, height);
+      kernel<<<CONFIG(grid)>>>();
+*/
+template<unsigned BLOCKDIM_X, unsigned BLOCKDIM_Y>
+struct Block2D {
+  __device__ static unsigned x() {
+    assert(blockDim.x == BLOCKDIM_X);
+    return blockIdx.x * BLOCKDIM_X + threadIdx.x;
+  }
+
+  __device__ static unsigned y() {
+    assert(blockDim.y == BLOCKDIM_Y);
+    return blockIdx.y * BLOCKDIM_Y + threadIdx.y;
+  }
+};
+
+#endif  // __NVCC__
+
+#undef HOST_DEVICE_DECORATORS
+#undef DEVICE_DECORATOR
+
 #endif  // LOV_E_HPP_

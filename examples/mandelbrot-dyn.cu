@@ -270,7 +270,7 @@ void mandelbrot_block_k(
       dwell_fill_k<<<blocks, threads>>>(dwells, w, x0, y0, d, comm_dwell);
     } else if (depth + 1 < MAX_DEPTH && d / SUBDIV > MIN_SIZE) {
       // Subdivide recursively
-      const dim3 threads(blockDim.x, blockDim.y);
+      const dim3 threads(BSX, BSY);
       const dim3 blocks(SUBDIV, SUBDIV);
       mandelbrot_block_k<<<blocks, threads>>>(dwells, w, h, cmin, cmax, x0, y0, d / SUBDIV, depth+ 1);
     } else {
