@@ -30,7 +30,8 @@ cuda_example_source_files := $(wildcard examples/*.cu)
 lintable_source_files := lov-e.hpp $(cuda_unit_test_source_files) $(cpp_unit_test_source_files) $(cuda_example_source_files)
 
 # Output files
-object_files := $(patsubst %.cu,build/debug/%.o,$(cuda_unit_test_source_files)) $(patsubst %.cpp,build/debug/%.o,$(cpp_unit_test_source_files)) $(patsubst %.cu,build/release/%.o,$(cuda_example_source_files))
+object_files := $(patsubst %.cu,build/debug/%.o,$(cuda_unit_test_source_files)) $(patsubst %.cpp,build/debug/%.o,$(cpp_unit_test_source_files)) $(patsubst %.cu,build/debug/%.o,$(cuda_example_source_files))
+object_files += $(patsubst %.cu,build/release/%.o,$(cuda_unit_test_source_files)) $(patsubst %.cpp,build/release/%.o,$(cpp_unit_test_source_files)) $(patsubst %.cu,build/release/%.o,$(cuda_example_source_files))
 binary_files := $(patsubst %.o,%,$(object_files))
 cpplint_sentinel_files := $(patsubst %,build/cpplint/%.ok,$(lintable_source_files))
 unit_test_sentinel_files := $(patsubst %.cu,build/debug/%.ok,$(cuda_unit_test_source_files)) $(patsubst %.cpp,build/debug/%.ok,$(cpp_unit_test_source_files))
@@ -74,8 +75,8 @@ tests: unit-tests
 .PHONY: unit-tests
 unit-tests: $(unit_test_sentinel_files)
 
-# Example
-# =======
+# Examples
+# ========
 
 .PHONY: examples
 examples: $(example_sentinel_files)

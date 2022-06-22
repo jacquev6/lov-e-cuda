@@ -12,6 +12,8 @@
 #include <string.h>
 #include <time.h>
 
+#include "../lov-e.hpp"
+
 
 #define H (16 * 1024)
 #define W (16 * 1024)
@@ -45,7 +47,10 @@ void dwell_color(int* r, int* g, int* b, int dwell) {
 }
 
 
-void save_image(const char* filename, int* dwells, unsigned w, unsigned h) {
+void save_image(const char* filename, ArrayView2D<Host, int> dwells) {
+  const unsigned h = dwells.s1();
+  const unsigned w = dwells.s0();
+
   // Code taken from http://www.labbookpages.co.uk/software/imgProc/libPNG.html
   png_bytep row;
   FILE* fp = fopen(filename, "wb");
@@ -66,7 +71,7 @@ void save_image(const char* filename, int* dwells, unsigned w, unsigned h) {
   for (unsigned y = 0; y < h; y++) {
     for (unsigned x = 0; x < w; x++) {
       int r, g, b;
-      dwell_color(&r, &g, &b, dwells[y * w + x]);
+      dwell_color(&r, &g, &b, dwells[y][x]);
       row[3 * x + 0] = (png_byte)r;
       row[3 * x + 1] = (png_byte)g;
       row[3 * x + 2] = (png_byte)b;
@@ -153,35 +158,34 @@ Compute the dwells for Mandelbrot image
 @param cmax the complex value associated with the top-right corner of the image
 */
 __global__
-void mandelbrot_k(int* dwells, int w, int h, complex cmin, complex cmax) {
-  int x = threadIdx.x + blockIdx.x * blockDim.x;
-  int y = threadIdx.y + blockIdx.y * blockDim.y;
-  dwells[y * w + x] = pixel_dwell(w, h, cmin, cmax, x, y);
+void mandelbrot_k(ArrayView2D<Device, int> dwells, complex cmin, complex cmax) {
+  const unsigned h = dwells.s1();
+  const unsigned w = dwells.s0();
+  const int x = threadIdx.x + blockIdx.x * blockDim.x;
+  const int y = threadIdx.y + blockIdx.y * blockDim.y;
+  dwells[y][x] = pixel_dwell(w, h, cmin, cmax, x, y);
 }
 
 int main(int, char*[]) {
   const int w = W;
   const int h = H;
 
-  const size_t dwell_sz = w * h * sizeof(int);
-  int* d_dwells;
-  cucheck(cudaMalloc(reinterpret_cast<void**>(&d_dwells), dwell_sz));
-  int* const h_dwells = reinterpret_cast<int*>(malloc(dwell_sz));
+  Array2D<Device, int> d_dwells(h, w);
 
   const dim3 threads(BSX, BSY);
   const dim3 blocks(divup(w, threads.x), divup(h, threads.y));
 
   const double t1 = omp_get_wtime();
-  mandelbrot_k<<<blocks, threads>>>(d_dwells, w, h, complex(-1.5, -1), complex(0.5, 1));
+  mandelbrot_k<<<blocks, threads>>>(d_dwells, complex(-1.5, -1), complex(0.5, 1));
   cucheck(cudaDeviceSynchronize());
+
   const double t2 = omp_get_wtime();
 
-  cucheck(cudaMemcpy(h_dwells, d_dwells, dwell_sz, cudaMemcpyDeviceToHost));
-  save_image(IMAGE_PATH, h_dwells, w, h);
+  // @todo Use clone_to<Host>
+  Array2D<Host, int> h_dwells(h, w);
+  copy<Device, Host>(d_dwells, h_dwells);
+  save_image(IMAGE_PATH, h_dwells);
 
   const double gpu_time = t2 - t1;
   printf("Mandelbrot set computed in %.3lf s, at %.3lf Mpix/s\n", gpu_time, h * w * 1e-6 / gpu_time);
-
-  free(h_dwells);
-  cudaFree(d_dwells);
 }

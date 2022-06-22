@@ -10,10 +10,12 @@
 
 #include <cassert>
 #include <cstring>
+#include <exception>
 
 
 #ifdef __NVCC__
 #define HOST_DEVICE_DECORATORS __host__ __device__
+#define DEVICE_DECORATOR __device__
 #else
 #define HOST_DEVICE_DECORATORS
 #endif
@@ -168,5 +170,199 @@ void free_device(T* const p) {
     check_cuda_errors();
   }
 }
+
+/*                           *
+ * Generic memory management *
+ *                           */
+
+struct Host {
+  template<typename T>
+  static T* alloc(const std::size_t n) { return alloc_host<T>(n); }
+  template<typename T>
+  static void free(T* p) { return free_host(p); }
+};
+
+struct Device {
+  template<typename T>
+  static T* alloc(const std::size_t n) { return alloc_device<T>(n); }
+  template<typename T>
+  static void free(T* p) { return free_device(p); }
+};
+
+template<typename WhereFrom>
+struct From {
+  template<typename WhereTo>
+  struct To;
+};
+
+template<>
+template<>
+struct From<Host>::To<Device> {
+  template<typename T>
+  static void copy(const std::size_t n, const T* const src, T* const dst) {
+    return copy_host_to_device(n, src, dst);
+  }
+
+  template<typename T>
+  static T* clone(const std::size_t n, const T* const src) {
+    return clone_host_to_device(n, src);
+  }
+};
+
+template<>
+template<>
+struct From<Device>::To<Host> {
+  template<typename T>
+  static void copy(const std::size_t n, const T* const src, T* const dst) {
+    return copy_device_to_host(n, src, dst);
+  }
+
+  template<typename T>
+  static T* clone(const std::size_t n, const T* const src) {
+    return clone_device_to_host(n, src);
+  }
+};
+
+/*            *
+ * ArrayViews *
+ *            */
+
+template<typename Where, typename T>
+class ArrayView1D;
+
+// Provide specializations for each possible 'Where', to decorate (__host__ and/or __device__) the
+// 'T& operator[](unsigned i0)' to avoid *during compilation* dereferencing a device pointer
+// on the host and reciprocally.
+// Downside: some code duplication, but I don't see a way to avoid it.
+// @todo Maybe we can specialize only the operator[]? (https://stackoverflow.com/a/5950287/905845)
+template<typename T>
+class ArrayView1D<Host, T> {
+ public:
+  HOST_DEVICE_DECORATORS
+  ArrayView1D(unsigned s0, T* data) : _s0(s0), _data(data) {}
+
+  template<typename W, typename U>
+  friend class ArrayView1D;
+
+  template<typename U>
+  HOST_DEVICE_DECORATORS
+  ArrayView1D(const ArrayView1D<Host, U>& o) : _s0(o._s0), _data(o._data) {}
+
+  HOST_DEVICE_DECORATORS
+  unsigned s0() const { return _s0; }
+
+  inline T& operator[](unsigned i0) const {
+    assert(i0 < _s0);
+    return *(_data + i0);
+  }
+
+ protected:
+  const unsigned _s0;
+  T* const _data;
+};
+
+#ifdef __NVCC__
+
+template<typename T>
+class ArrayView1D<Device, T> {
+ public:
+  HOST_DEVICE_DECORATORS
+  ArrayView1D(unsigned s0, T* data) : _s0(s0), _data(data) {}
+
+  template<typename W, typename U>
+  friend class ArrayView1D;
+
+  template<typename U>
+  HOST_DEVICE_DECORATORS
+  ArrayView1D(const ArrayView1D<Device, U>& o) : _s0(o._s0), _data(o._data) {}
+
+  HOST_DEVICE_DECORATORS
+  unsigned s0() const { return _s0; }
+
+  DEVICE_DECORATOR
+  inline T& operator[](unsigned i0) const {
+    assert(i0 < _s0);
+    return *(_data + i0);
+  }
+
+ protected:
+  const unsigned _s0;
+  T* const _data;
+};
+
+#endif
+
+template<typename Where, typename T>
+class ArrayView2D {
+ public:
+  HOST_DEVICE_DECORATORS
+  ArrayView2D(unsigned s1, unsigned s0, T* data) : _s1(s1), _s0(s0), _data(data) {}
+
+  template<typename W, typename U>
+  friend class ArrayView2D;
+
+  template<typename From, typename To, typename U>
+  friend void copy(ArrayView2D<From, U> src, ArrayView2D<To, U> dst);
+
+  template<typename U>
+  HOST_DEVICE_DECORATORS
+  ArrayView2D(const ArrayView2D<Where, U>& o) : _s1(o._s1), _s0(o._s0), _data(o._data) {}
+
+  HOST_DEVICE_DECORATORS
+  unsigned s1() const { return _s1; }
+  HOST_DEVICE_DECORATORS
+  unsigned s0() const { return _s0; }
+
+  HOST_DEVICE_DECORATORS
+  inline ArrayView1D<Where, T> operator[](unsigned i1) const {
+    assert(i1 < _s1);
+    return ArrayView1D<Where, T>(_s0, _data + i1 * _s0);
+  }
+
+ protected:
+  const unsigned _s1;
+  const unsigned _s0;
+  T* const _data;
+};
+
+
+template<typename WhereFrom, typename WhereTo, typename T>
+void copy(ArrayView2D<WhereFrom, T> src, ArrayView2D<WhereTo, T> dst) {  // NOLINT(build/include_what_you_use)
+  assert(dst.s1() == src.s1());
+  assert(dst.s0() == src.s0());
+
+  From<WhereFrom>::template To<WhereTo>::template copy(
+    src.s1() * src.s0(), src._data, dst._data);
+}
+
+/*        *
+ * Arrays *
+ *        */
+
+template<typename Where, typename T>
+class Array1D : public ArrayView1D<Where, T> {
+ public:
+  explicit Array1D(unsigned s0) : ArrayView1D<Where, T>(s0, Where::template alloc<T>(s0)) {}
+  ~Array1D() { Where::free(this->_data); }
+
+//  private:
+//   template<typename U>
+//   Array1D(const Array1D<Where, U>&) = delete;
+//   template<typename U>
+//   Array1D(const Array1D<Where, U>&&) = delete;
+};
+
+template<typename Where, typename T>
+class Array2D : public ArrayView2D<Where, T> {
+ public:
+  Array2D(unsigned s1, unsigned s0) : ArrayView2D<Where, T>(s1, s0, Where::template alloc<T>(s1 * s0)) {}
+  ~Array2D() { Where::free(this->_data); }
+
+//  private:
+//   template<typename U>
+//   Array2D(const Array2D<Where, U>&) = delete;
+//   template<typename U>
+//   Array2D(const Array2D<Where, U>&&) = delete;
+};
 
 #endif  // LOV_E_HPP_

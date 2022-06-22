@@ -13,6 +13,8 @@
 #include <string.h>
 #include <time.h>
 
+#include "../lov-e.hpp"
+
 
 #define H (16 * 1024)
 #define W (16 * 1024)
@@ -54,13 +56,16 @@ void dwell_color(int* r, int* g, int* b, int dwell) {
 }
 
 
-void save_image(const char* filename, int* dwells, unsigned w, unsigned h) {
+void save_image(const char* filename, ArrayView2D<Host, int> dwells) {
+  const unsigned h = dwells.s1();
+  const unsigned w = dwells.s0();
+
   // Code taken from http://www.labbookpages.co.uk/software/imgProc/libPNG.html
   png_bytep row;
   FILE* fp = fopen(filename, "wb");
   png_structp png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, 0, 0, 0);
   png_infop info_ptr = png_create_info_struct(png_ptr);
-  setjmp(png_jmpbuf(png_ptr));
+  // setjmp(png_jmpbuf(png_ptr));  // @todo Understand what this was doing
   png_init_io(png_ptr, fp);
   png_set_IHDR(
     png_ptr, info_ptr, w, h, 8, PNG_COLOR_TYPE_RGB,
@@ -75,7 +80,7 @@ void save_image(const char* filename, int* dwells, unsigned w, unsigned h) {
   for (unsigned y = 0; y < h; y++) {
     for (unsigned x = 0; x < w; x++) {
       int r, g, b;
-      dwell_color(&r, &g, &b, dwells[y * w + x]);
+      dwell_color(&r, &g, &b, dwells[y][x]);
       row[3 * x + 0] = (png_byte)r;
       row[3 * x + 1] = (png_byte)g;
       row[3 * x + 2] = (png_byte)b;
@@ -220,23 +225,26 @@ int border_dwell(int w, int h, complex cmin, complex cmax, int x0, int y0, int d
 
 // Fill the image region with a specific dwell value
 __global__
-void dwell_fill_k(int* dwells, int w, int x0, int y0, int d, int dwell) {
+void dwell_fill_k(ArrayView2D<Device, int> dwells, int x0, int y0, int d, int dwell) {
   int x = threadIdx.x + blockIdx.x * blockDim.x;
   int y = threadIdx.y + blockIdx.y * blockDim.y;
   if (x < d && y < d) {
     x += x0, y += y0;
-    dwells[y * w + x] = dwell;
+    dwells[y][x] = dwell;
   }
 }
 
 // Fill in per-pixel values of the portion of the Mandelbrot set
 __global__
-void mandelbrot_pixel_k(int* dwells, int w, int h, complex cmin, complex cmax, int x0, int y0, int d) {
+void mandelbrot_pixel_k(ArrayView2D<Device, int> dwells, complex cmin, complex cmax, int x0, int y0, int d) {
+  const unsigned h = dwells.s1();
+  const unsigned w = dwells.s0();
+
   int x = threadIdx.x + blockDim.x * blockIdx.x;
   int y = threadIdx.y + blockDim.y * blockIdx.y;
   if (x < d && y < d) {
     x += x0, y += y0;
-    dwells[y * w + x] = pixel_dwell(w, h, cmin, cmax, x, y);
+    dwells[y][x] = pixel_dwell(w, h, cmin, cmax, x, y);
   }
 }
 
@@ -258,26 +266,30 @@ once either maximum depth or minimum size is reached.
 */
 __global__
 void mandelbrot_block_k(
-  int* dwells, int w, int h, complex cmin, complex cmax, int x0, int y0,  int d, int depth
+  ArrayView2D<Device, int> dwells, complex cmin, complex cmax, int x0, int y0,  int d, int depth
 ) {
-  x0 += d * blockIdx.x, y0 += d * blockIdx.y;
+  const unsigned h = dwells.s1();
+  const unsigned w = dwells.s0();
+
+  x0 += d * blockIdx.x;
+  y0 += d * blockIdx.y;
   int comm_dwell = border_dwell(w, h, cmin, cmax, x0, y0, d);
   if (threadIdx.x == 0 && threadIdx.y == 0) {
     if (comm_dwell != DIFF_DWELL) {
       // Uniform dwell, just fill
       const dim3 threads(BSX, BSY);
       const dim3 blocks(divup(d, BSX), divup(d, BSY));
-      dwell_fill_k<<<blocks, threads>>>(dwells, w, x0, y0, d, comm_dwell);
+      dwell_fill_k<<<blocks, threads>>>(dwells, x0, y0, d, comm_dwell);
     } else if (depth + 1 < MAX_DEPTH && d / SUBDIV > MIN_SIZE) {
       // Subdivide recursively
       const dim3 threads(blockDim.x, blockDim.y);
       const dim3 blocks(SUBDIV, SUBDIV);
-      mandelbrot_block_k<<<blocks, threads>>>(dwells, w, h, cmin, cmax, x0, y0, d / SUBDIV, depth+ 1);
+      mandelbrot_block_k<<<blocks, threads>>>(dwells, cmin, cmax, x0, y0, d / SUBDIV, depth+ 1);
     } else {
       // Leaf: per-pixel kernel
       const dim3 threads(BSX, BSY);
       const dim3 blocks(divup(d, BSX), divup(d, BSY));
-      mandelbrot_pixel_k<<<blocks, threads>>>(dwells, w, h, cmin, cmax, x0, y0, d);
+      mandelbrot_pixel_k<<<blocks, threads>>>(dwells, cmin, cmax, x0, y0, d);
     }
     cucheck_dev(cudaGetLastError());
     check_error(x0, y0, d);
@@ -287,26 +299,22 @@ void mandelbrot_block_k(
 int main(int, char*[]) {
   const int w = W;
   const int h = H;
-  const size_t dwell_sz = w * h * sizeof(int);
 
-  int* d_dwells;
-  cucheck(cudaMalloc(reinterpret_cast<void**>(&d_dwells), dwell_sz));
-  int* const h_dwells = reinterpret_cast<int*>(malloc(dwell_sz));
+  Array2D<Device, int> d_dwells(h, w);
 
   const dim3 threads(BSX, BSY);
   const dim3 blocks(INIT_SUBDIV, INIT_SUBDIV);
 
   const double t1 = omp_get_wtime();
-  mandelbrot_block_k<<<blocks, threads>>>(d_dwells, w, h, complex(-1.5, -1), complex(0.5, 1), 0, 0, w / INIT_SUBDIV, 1);
+  mandelbrot_block_k<<<blocks, threads>>>(d_dwells, complex(-1.5, -1), complex(0.5, 1), 0, 0, w / INIT_SUBDIV, 1);
   cucheck(cudaDeviceSynchronize());
   const double t2 = omp_get_wtime();
 
-  cucheck(cudaMemcpy(h_dwells, d_dwells, dwell_sz, cudaMemcpyDeviceToHost));
-  save_image(IMAGE_PATH, h_dwells, w, h);
+  // @todo Use clone_to<Host>
+  Array2D<Host, int> h_dwells(h, w);
+  copy<Device, Host>(d_dwells, h_dwells);
+  save_image(IMAGE_PATH, h_dwells);
 
   const double gpu_time = t2 - t1;
   printf("Mandelbrot set computed in %.3lf s, at %.3lf Mpix/s\n", gpu_time, h * w * 1e-6 / gpu_time);
-
-  free(h_dwells);
-  cudaFree(d_dwells);
 }

@@ -59,7 +59,37 @@ Whenever appropriate, we kindly ask that you cite *Lov-e-cuda* in the following 
 - put it in your include path, for example in `/usr/local/include` or simply besides your code
 - add `#include <lov-e.hpp>` in your files
 
-Below are examples of each use cases covered by *Lov-e-cuda*.
+Then see the "User manual" and "Examples" sections below.
+
+# Examples
+
+For each example, we provide one version that uses *Lov-e-cuda*, and one that doesn't.
+We use the same, somewhat pedantic, coding standards in all examples so that they differ only by the introduction of *Lov-e-cuda*.
+
+Comparing the versions without and with *Lov-e-cuda* shows how the abstractions it provides simplify the code.
+
+Comparing their runtime performance proves that *Lov-e-cuda* is neutral on that aspect.
+*Note* that this is true only when compiling with -DNDEBUG.
+On the other hand, when `assert`s are activated, code using *Lov-e-cuda* can be significantly slower.
+That is because it checks that all indexes are within boundaries, and so it's *safer*.
+
+## Descriptions
+
+### Mandelbrot
+
+Based on this [NVidia blog article by Andy Adinets about dynamic parallelism](https://developer.nvidia.com/blog/introduction-cuda-dynamic-parallelism/), we provide two examples that produce a 16384x16384 image of the Mandelbrot set: one with dynamic parallelism and one without.
+
+## Runtime performance
+
+<!-- @todo Generate this section from actual executions -->
+<!-- @todo Average a few executions (10?) to get more significant numbers -->
+
+All performance below have been measured on code compiled with `-O3 -DNDEBUG`.
+
+| Example | Without *Lov-e-cuda* | With *Lov-e-cuda* |
+| --- | --- | --- |
+| Mandelbrot<br>(static parallelism) | 183 ms *i.e.* 1464 Mpix/s | 184 ms *i.e.* 1462 Mpix/s |
+| Mandelbrot<br>(dynamic parallelism) | 43 ms *i.e.* 6274 Mpix/s | 39 ms *i.e.* 6920 Mpix/s |
 
 # User manual
 
