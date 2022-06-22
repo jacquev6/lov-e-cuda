@@ -10,6 +10,7 @@ RUN set -x \
       wget python3-pip `# Common tools` \
       software-properties-common dirmngr gpg-agent `# Required when adding the NVidia APT repository` \
       make cmake g++ `# Build tools` \
+      libpng-dev `# Development version of direct dependencies` \
  && apt-get clean
 
 # Google Test
