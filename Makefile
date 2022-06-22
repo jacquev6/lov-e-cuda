@@ -15,7 +15,7 @@ SHELL := /bin/bash -o pipefail -o errexit
 ############################
 
 .PHONY: default
-default: lint tests examples
+default: lint link tests
 
 #############
 # Inventory #
@@ -29,7 +29,9 @@ cpp_unit_test_source_files := $(wildcard tests/*.cpp)
 cuda_example_source_files := $(wildcard examples/*.cu)
 lintable_source_files := lov-e.hpp $(cuda_unit_test_source_files) $(cpp_unit_test_source_files) $(cuda_example_source_files)
 
-# Intermediate files
+# Output files
+object_files := $(patsubst %.cu,build/debug/%.o,$(cuda_unit_test_source_files)) $(patsubst %.cpp,build/debug/%.o,$(cpp_unit_test_source_files)) $(patsubst %.cu,build/release/%.o,$(cuda_example_source_files))
+binary_files := $(patsubst %.o,%,$(object_files))
 cpplint_sentinel_files := $(patsubst %,build/cpplint/%.ok,$(lintable_source_files))
 unit_test_sentinel_files := $(patsubst %.cu,build/debug/%.ok,$(cuda_unit_test_source_files)) $(patsubst %.cpp,build/debug/%.ok,$(cpp_unit_test_source_files))
 example_sentinel_files := $(patsubst %.cu,build/release/%.ok,$(cuda_example_source_files))
@@ -52,6 +54,16 @@ build/cpplint/%.ok: %
 	@mkdir -p $(dir $@)
 	@cpplint --linelength=120 $< | tee build/cpplint/$*.log
 	@touch $@
+
+
+# Compile and link
+# ================
+
+.PHONY: compile
+compile: $(object_files)
+
+.PHONY: link
+link: $(binary_files)
 
 # Test
 # ====
