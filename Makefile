@@ -27,7 +27,7 @@ root_directory := $(shell pwd)
 cuda_unit_test_source_files := $(wildcard tests/*.cu)
 cpp_unit_test_source_files := $(wildcard tests/*.cpp)
 cuda_example_source_files := $(wildcard examples/*.cu)
-lintable_source_files := lov-e.hpp $(cuda_unit_test_source_files) $(cpp_unit_test_source_files)
+lintable_source_files := lov-e.hpp $(cuda_unit_test_source_files) $(cpp_unit_test_source_files) $(cuda_example_source_files)
 
 # Intermediate files
 cpplint_sentinel_files := $(patsubst %,build/cpplint/%.ok,$(lintable_source_files))
@@ -72,45 +72,61 @@ examples: $(example_sentinel_files)
 # Generic rules #
 #################
 
+# Ah the pain of enabling "all" 'g++' warnings... https://stackoverflow.com/a/11720263/905845
+gcc_flags := -std=c++17 -fopenmp -W -Wall -Wextra -Werror -pedantic -I/usr/local/cuda-11.2/targets/x86_64-linux/include
+
+# Targets:
+# - 52: Vincent's GeForce GTX TITAN X and Laurent's GeForce GTX 980 Ti
+# - 75: Laurent's GeForce RTX 2080 Ti
+nvcc_targets := -arch=sm_75 -gencode=arch=compute_52,code=sm_52 -gencode=arch=compute_75,code=sm_75
+nvcc_flags := -std=c++17 -Xcompiler "-fopenmp -W -Wall -Wextra -Werror" $(nvcc_targets)
+
+link_flags := -lgtest_main -lgtest -lpng
+
 # Debug
 # =====
+
+debug_flags := -g -O0
 
 # Compile
 build/debug/%.o: %.cu lov-e.hpp
 	@echo "nvcc -dc $<"
 	@mkdir -p $(dir $@)
-	@nvcc -dc -g -Xcompiler -fopenmp $< -o $@
+	@nvcc -dc $(nvcc_flags) $(debug_flags) $< -o $@
 
 build/debug/%.o: %.cpp lov-e.hpp
 	@echo "g++ -c $<"
 	@mkdir -p $(dir $@)
-	@g++ -c -fopenmp -g -I/usr/local/cuda-11.2/targets/x86_64-linux/include $< -o $@
+	@g++ -c  $(gcc_flags) $(debug_flags) $< -o $@
 
 # Link
 build/debug/%: build/debug/%.o
 	@echo "nvcc -o $@"
 	@mkdir -p $(dir $@)
-	@nvcc -g -Xcompiler -fopenmp -lgtest_main -lgtest -lpng $^ -o $@
+	@nvcc $(nvcc_flags) $(debug_flags) $(link_flags) $^ -o $@
 
 # Release
 # =======
+
+gcc_release_flags := -march=native -mtune=native -O3 -DNDEBUG
+nvcc_release_flags := -Xcompiler "-march=native -mtune=native" -O3 -DNDEBUG
 
 # Compile
 build/release/%.o: %.cu lov-e.hpp
 	@echo "nvcc -dc $<"
 	@mkdir -p $(dir $@)
-	@nvcc -dc -O3 -DNDEBUG -Xcompiler -fopenmp $< -o $@
+	@nvcc -dc $(nvcc_flags) $(nvcc_release_flags) $< -o $@
 
 build/release/%.o: %.cpp lov-e.hpp
 	@echo "g++ -c $<"
 	@mkdir -p $(dir $@)
-	@g++ -c -fopenmp -O3 -DNDEBUG -I/usr/local/cuda-11.2/targets/x86_64-linux/include $< -o $@
+	@g++ -c $(gcc_flags) $(gcc_release_flags) $< -o $@
 
 # Link
 build/release/%: build/release/%.o
 	@echo "nvcc -o $@"
 	@mkdir -p $(dir $@)
-	@nvcc -O3 -DNDEBUG -Xcompiler -fopenmp -lgtest_main -lgtest -lpng $^ -o $@
+	@nvcc $(nvcc_flags) $(nvcc_release_flags) $(link_flags) $^ -o $@
 
 # Run
 # ===
