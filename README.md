@@ -8,8 +8,8 @@ and utilities to facilitate [DRY](https://en.wikipedia.org/wiki/Don%27t_repeat_y
 
 # Contents
 
-@todo Add section about error checking
-@todo What about using the type checker to ensure Device pointers are never dereferenced on the Host and reciprocally?
+<!-- @todo Add section about error checking -->
+<!-- @todo What about using the type checker to ensure Device pointers are never dereferenced on the Host and reciprocally? -->
 
 ## Memory management
 
@@ -96,6 +96,9 @@ All performance below have been measured on code compiled with `-O3 -DNDEBUG`.
 ## Memory management
 
 ## Multi-dimensional-array-like memory access
+
+<!-- @todo Document that indexes and sizes are in order sN -> ... -> s1 -> s0
+(To ensure that the right-most index is always i0. Useful when doing b = a[i1]; c = b[i0]) -->
 
 ## Grid and blocks
 
