@@ -13,10 +13,10 @@
 #include <time.h>
 
 
-#define H (8 * 1024)
-#define W (8 * 1024)
+#define H (16 * 1024)
+#define W (16 * 1024)
 #define IMAGE_PATH "./mandelbrot.png"
-#define MAX_DWELL 256
+#define MAX_DWELL 512
 #define CUT_DWELL (MAX_DWELL / 4)
 // Block size along
 #define BSX 64
