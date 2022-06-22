@@ -171,9 +171,7 @@ int main(int, char*[]) {
 
   const double t2 = omp_get_wtime();
 
-  // @todo Use clone_to<Host>
-  Array2D<Host, int> h_dwells(h, w);
-  copy<Device, Host>(d_dwells, h_dwells);
+  Array2D<Host, int> h_dwells = clone_to<Host>(d_dwells);
   save_image(IMAGE_PATH, h_dwells);
 
   const double gpu_time = t2 - t1;

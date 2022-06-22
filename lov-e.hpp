@@ -192,36 +192,34 @@ struct Device {
 template<typename WhereFrom>
 struct From {
   template<typename WhereTo>
-  struct To;
+  struct To {
+    template<typename T>
+    static void copy(const std::size_t n, const T* const src, T* const dst);
+
+    template<typename T>
+    static T* clone(const std::size_t n, const T* const src);
+  };
 };
 
-template<>
-template<>
-struct From<Host>::To<Device> {
-  template<typename T>
-  static void copy(const std::size_t n, const T* const src, T* const dst) {
-    return copy_host_to_device(n, src, dst);
-  }
+template<> template<> template<typename T>
+void From<Host>::To<Device>::copy(const std::size_t n, const T* const src, T* const dst) {
+  return copy_host_to_device(n, src, dst);
+}
 
-  template<typename T>
-  static T* clone(const std::size_t n, const T* const src) {
-    return clone_host_to_device(n, src);
-  }
-};
+template<> template<> template<typename T>
+T* From<Host>::To<Device>::clone(const std::size_t n, const T* const src) {
+  return clone_host_to_device(n, src);
+}
 
-template<>
-template<>
-struct From<Device>::To<Host> {
-  template<typename T>
-  static void copy(const std::size_t n, const T* const src, T* const dst) {
-    return copy_device_to_host(n, src, dst);
-  }
+template<> template<> template<typename T>
+void From<Device>::To<Host>::copy(const std::size_t n, const T* const src, T* const dst) {
+  return copy_device_to_host(n, src, dst);
+}
 
-  template<typename T>
-  static T* clone(const std::size_t n, const T* const src) {
-    return clone_device_to_host(n, src);
-  }
-};
+template<> template<> template<typename T>
+T* From<Device>::To<Host>::clone(const std::size_t n, const T* const src) {
+  return clone_device_to_host(n, src);
+}
 
 /*            *
  * ArrayViews *
@@ -327,7 +325,7 @@ class ArrayView2D {
 
 
 template<typename WhereFrom, typename WhereTo, typename T>
-void copy(ArrayView2D<WhereFrom, T> src, ArrayView2D<WhereTo, T> dst) {  // NOLINT(build/include_what_you_use)
+void copy(ArrayView2D<WhereFrom, T> src, ArrayView2D<WhereTo, T> dst) {
   assert(dst.s1() == src.s1());
   assert(dst.s0() == src.s0());
 
@@ -365,6 +363,17 @@ class Array2D : public ArrayView2D<Where, T> {
 //   Array2D(const Array2D<Where, U>&&) = delete;
 };
 
+template<typename WhereTo, typename WhereFrom, typename T>
+Array2D<WhereTo, T> clone_to(ArrayView2D<WhereFrom, T> src) {
+  Array2D<WhereTo, T> dst(src.s1(), src.s0());
+  copy(src, dst);  // NOLINT(build/include_what_you_use)
+  return dst;  // @todo Make it work even without RVO
+  // (I think RVO is saving us from double-free until we implement a move constructor)
+}
+
+/*                          *
+ * Grid and block utilities *
+ *                          */
 
 struct Grid {
   const dim3 blocks;
