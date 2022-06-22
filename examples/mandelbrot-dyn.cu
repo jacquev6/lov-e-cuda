@@ -143,15 +143,6 @@ inline __host__ __device__ complex operator/(const complex &a, const complex &b)
   } \
 }
 
-__device__
-void check_error(int x0, int y0, int d) {
-  int err = cudaGetLastError();
-  if (err != cudaSuccess) {
-    printf("error launching kernel for region (%d..%d, %d..%d)\n", x0, x0 + d, y0, y0 + d);
-    assert(0);
-  }
-}
-
 
 __host__ __device__
 int divup(int x, int y) { return x / y + (x % y ? 1 : 0); }
@@ -280,7 +271,6 @@ void mandelbrot_block_k(
       mandelbrot_pixel_k<<<blocks, threads>>>(dwells, w, h, cmin, cmax, x0, y0, d);
     }
     cucheck_dev(cudaGetLastError());
-    check_error(x0, y0, d);
   }
 }
 

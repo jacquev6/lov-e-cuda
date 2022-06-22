@@ -120,22 +120,12 @@ inline __host__ __device__ complex operator/(const complex &a, const complex &b)
 }
 
 
-// Check CUDA errors
-#define cucheck(call) { \
-  cudaError_t res = (call); \
-  if (res != cudaSuccess) { \
-    const char* err_str = cudaGetErrorString(res); \
-    fprintf(stderr, "%s (%d): %s in %s", __FILE__, __LINE__, err_str, #call); \
-    exit(-1); \
-  } \
-}
-
-
 // Compute the dwell for a single pixel
 __device__
 int pixel_dwell(int w, int h, complex cmin, complex cmax, int x, int y) {
   const complex dc = cmax - cmin;
-  const float fx = static_cast<float>(x) / w, fy = static_cast<float>(y) / h;
+  const float fx = static_cast<float>(x) / w;
+  const float fy = static_cast<float>(y) / h;
   const complex c = cmin + complex(fx * dc.re, fy * dc.im);
   int dwell = 0;
   complex z = c;
@@ -177,7 +167,7 @@ int main(int, char*[]) {
 
   const double t1 = omp_get_wtime();
   mandelbrot_k<<<CONFIG(grid)>>>(d_dwells, complex(-1.5, -1), complex(0.5, 1));
-  cucheck(cudaDeviceSynchronize());
+  check_cuda_errors();
 
   const double t2 = omp_get_wtime();
 

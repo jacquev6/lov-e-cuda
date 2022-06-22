@@ -129,35 +129,6 @@ inline __host__ __device__ complex operator/(const complex &a, const complex &b)
 }
 
 
-// Check CUDA errors
-#define cucheck(call) { \
-  cudaError_t res = (call); \
-  if (res != cudaSuccess) { \
-    const char* err_str = cudaGetErrorString(res); \
-    fprintf(stderr, "%s (%d): %s in %s", __FILE__, __LINE__, err_str, #call); \
-    exit(-1); \
-  } \
-}
-
-#define cucheck_dev(call) { \
-  cudaError_t res = (call); \
-  if (res != cudaSuccess) { \
-    const char* err_str = cudaGetErrorString(res); \
-    printf("%s (%d): %s in %s", __FILE__, __LINE__, err_str, #call); \
-    assert(0); \
-  } \
-}
-
-__device__
-void check_error(int x0, int y0, int d) {
-  int err = cudaGetLastError();
-  if (err != cudaSuccess) {
-    printf("error launching kernel for region (%d..%d, %d..%d)\n", x0, x0 + d, y0, y0 + d);
-    assert(0);
-  }
-}
-
-
 // Compute the dwell for a single pixel
 __device__
 int pixel_dwell(int w, int h, complex cmin, complex cmax, int x, int y) {
@@ -288,8 +259,7 @@ void mandelbrot_block_k(
       const Grid grid = grid::make(d, d);
       mandelbrot_pixel_k<<<CONFIG(grid)>>>(dwells, cmin, cmax, x0, y0, d);
     }
-    cucheck_dev(cudaGetLastError());
-    check_error(x0, y0, d);
+    check_cuda_errors_no_sync();
   }
 }
 
@@ -303,7 +273,7 @@ int main(int, char*[]) {
 
   const double t1 = omp_get_wtime();
   mandelbrot_block_k<<<CONFIG(grid)>>>(d_dwells, complex(-1.5, -1), complex(0.5, 1), 0, 0, w / INIT_SUBDIV, 1);
-  cucheck(cudaDeviceSynchronize());
+  check_cuda_errors();
   const double t2 = omp_get_wtime();
 
   // @todo Use clone_to<Host>

@@ -132,7 +132,8 @@ int divup(int x, int y) { return x / y + (x % y ? 1 : 0); }
 __device__
 int pixel_dwell(int w, int h, complex cmin, complex cmax, int x, int y) {
   const complex dc = cmax - cmin;
-  const float fx = static_cast<float>(x) / w, fy = static_cast<float>(y) / h;
+  const float fx = static_cast<float>(x) / w;
+  const float fy = static_cast<float>(y) / h;
   const complex c = cmin + complex(fx * dc.re, fy * dc.im);
   int dwell = 0;
   complex z = c;
