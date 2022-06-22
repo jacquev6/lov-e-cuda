@@ -197,11 +197,10 @@ int border_dwell(int w, int h, complex cmin, complex cmax, int x0, int y0, int d
 // Fill the image region with a specific dwell value
 __global__
 void dwell_fill_k(ArrayView2D<Device, int> dwells, int x0, int y0, int d, int dwell) {
-  int x = threadIdx.x + blockIdx.x * blockDim.x;
-  int y = threadIdx.y + blockIdx.y * blockDim.y;
+  const int x = block::x();
+  const int y = block::y();
   if (x < d && y < d) {
-    x += x0, y += y0;
-    dwells[y][x] = dwell;
+    dwells[y + y0][x + x0] = dwell;
   }
 }
 
@@ -211,8 +210,8 @@ void mandelbrot_pixel_k(ArrayView2D<Device, int> dwells, complex cmin, complex c
   const unsigned h = dwells.s1();
   const unsigned w = dwells.s0();
 
-  int x = threadIdx.x + blockDim.x * blockIdx.x;
-  int y = threadIdx.y + blockDim.y * blockIdx.y;
+  int x = block::x();
+  int y = block::y();
   if (x < d && y < d) {
     x += x0, y += y0;
     dwells[y][x] = pixel_dwell(w, h, cmin, cmax, x, y);
