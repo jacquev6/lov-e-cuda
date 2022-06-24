@@ -83,154 +83,74 @@ inline void check_cuda_errors_(const char* const file, const unsigned line) {
 // @todo Consider initializing the memory to a 'weird' value in debug mode.
 // Maybe specialize that value by type? Signaling NaN has some appeal for floats, what about ints?
 
-// @todo Consider removing the basic memory management utilities and keep only the generic ones below
-
-template<typename T>
-T* alloc_host(const std::size_t n) {
-  if (n == 0) {
-    return nullptr;
-  } else {
-    return reinterpret_cast<T*>(std::malloc(n * sizeof(T)));
-  }
-}
-
-template<typename T>
-HOST_DEVICE_DECORATORS
-T* alloc_device(const std::size_t n) {
-  if (n == 0) {
-    return nullptr;
-  } else {
-    T* p;
-    cudaMalloc(&p, n * sizeof(T));
-    check_cuda_errors();
-    return p;
-  }
-}
-
-template<typename T>
-void memset_host(const std::size_t n, const char v, T* const p) {
-  std::memset(p, v, n * sizeof(T));
-}
-
-template<typename T>
-void memset_device(const std::size_t n, const char v, T* const p) {
-  cudaMemset(p, v, n * sizeof(T));
-}
-
-template<typename T>
-void memreset_host(const std::size_t n, T* const p) {
-  memset_host(n, 0, p);
-}
-
-template<typename T>
-void memreset_device(const std::size_t n, T* const p) {
-  memset_device(n, 0, p);
-}
-
-template<typename T>
-void copy_host_to_host(const std::size_t n, const T* const src, T* const dst) {
-  if (n == 0) {
-    return;
-  } else {
-    std::memcpy(dst, src, n * sizeof(T));
-    check_cuda_errors();
-  }
-}
-
-template<typename T>
-T* clone_host_to_host(const std::size_t n, const T* const src) {
-  T* dst = alloc_host<T>(n);
-  copy_host_to_host(n, src, dst);
-  return dst;
-}
-
-template<typename T>
-void copy_host_to_device(const std::size_t n, const T* const src, T* const dst) {
-  if (n == 0) {
-    return;
-  } else {
-    cudaMemcpy(dst, src, n * sizeof(T), cudaMemcpyHostToDevice);
-    check_cuda_errors();
-  }
-}
-
-template<typename T>
-T* clone_host_to_device(const std::size_t n, const T* const src) {
-  T* dst = alloc_device<T>(n);
-  copy_host_to_device(n, src, dst);
-  return dst;
-}
-
-template<typename T>
-void copy_device_to_device(const std::size_t n, const T* const src, T* const dst) {
-  if (n == 0) {
-    return;
-  } else {
-    cudaMemcpy(dst, src, n * sizeof(T), cudaMemcpyDeviceToDevice);
-    check_cuda_errors();
-  }
-}
-
-template<typename T>
-T* clone_device_to_device(const std::size_t n, const T* const src) {
-  T* dst = alloc_device<T>(n);
-  copy_device_to_device(n, src, dst);
-  return dst;
-}
-
-template<typename T>
-void copy_device_to_host(const std::size_t n, const T* const src, T* const dst) {
-  if (n == 0) {
-    return;
-  } else {
-    cudaMemcpy(dst, src, n * sizeof(T), cudaMemcpyDeviceToHost);
-    check_cuda_errors();
-  }
-}
-
-template<typename T>
-T* clone_device_to_host(const std::size_t n, const T* const src) {
-  T* dst = alloc_host<T>(n);
-  copy_device_to_host(n, src, dst);
-  return dst;
-}
-
-template<typename T>
-void free_host(T* const p) {
-  if (p == nullptr) {
-    return;
-  } else {
-    std::free(p);
-  }
-}
-
-template<typename T>
-HOST_DEVICE_DECORATORS
-void free_device(T* const p) {
-  if (p == nullptr) {
-    return;
-  } else {
-    cudaFree(p);
-    check_cuda_errors();
-  }
-}
-
-/*                           *
- * Generic memory management *
- *                           */
+/*                   *
+ * Memory management *
+ *                   */
 
 struct Host {
   template<typename T>
-  static T* alloc(const std::size_t n) { return alloc_host<T>(n); }
+  static void memset(const std::size_t n, const char v, T* const p) {
+    std::memset(p, v, n * sizeof(T));
+  }
+
   template<typename T>
-  static void free(T* p) { return free_host(p); }
+  static void memreset(const std::size_t n, T* const p) {
+    memset(n, 0, p);
+  }
+
+  template<typename T>
+  static T* alloc(const std::size_t n) {
+    if (n == 0) {
+      return nullptr;
+    } else {
+      return reinterpret_cast<T*>(std::malloc(n * sizeof(T)));
+    }
+  }
+
+  template<typename T>
+  static void free(T* p) {
+    if (p == nullptr) {
+      return;
+    } else {
+      std::free(p);
+    }
+  }
 };
 
 struct Device {
   template<typename T>
-  static T* alloc(const std::size_t n) { return alloc_device<T>(n); }
+  static void memset(const std::size_t n, const char v, T* const p) {
+    cudaMemset(p, v, n * sizeof(T));
+  }
+
   template<typename T>
-  static void free(T* p) { return free_device(p); }
+  static void memreset(const std::size_t n, T* const p) {
+    memset(n, 0, p);
+  }
+
+  template<typename T>
+  HOST_DEVICE_DECORATORS
+  static T* alloc(const std::size_t n) {
+    if (n == 0) {
+      return nullptr;
+    } else {
+      T* p;
+      cudaMalloc(&p, n * sizeof(T));
+      check_cuda_errors();
+      return p;
+    }
+  }
+
+  template<typename T>
+  HOST_DEVICE_DECORATORS
+  static void free(T* p) {
+    if (p == nullptr) {
+      return;
+    } else {
+      cudaFree(p);
+      check_cuda_errors();
+    }
+  }
 };
 
 template<typename WhereFrom>
@@ -241,48 +161,51 @@ struct From {
     static void copy(const std::size_t n, const T* const src, T* const dst);
 
     template<typename T>
-    static T* clone(const std::size_t n, const T* const src);
+    static T* clone(const std::size_t n, const T* const src) {
+      T* dst = WhereTo::template alloc<T>(n);
+      copy(n, src, dst);
+      return dst;
+    }
   };
 };
 
 template<> template<> template<typename T>
 void From<Host>::To<Host>::copy(const std::size_t n, const T* const src, T* const dst) {
-  return copy_host_to_host(n, src, dst);
-}
-
-template<> template<> template<typename T>
-T* From<Host>::To<Host>::clone(const std::size_t n, const T* const src) {
-  return clone_host_to_host(n, src);
+  if (n == 0) {
+    return;
+  } else {
+    std::memcpy(dst, src, n * sizeof(T));
+  }
 }
 
 template<> template<> template<typename T>
 void From<Host>::To<Device>::copy(const std::size_t n, const T* const src, T* const dst) {
-  return copy_host_to_device(n, src, dst);
-}
-
-template<> template<> template<typename T>
-T* From<Host>::To<Device>::clone(const std::size_t n, const T* const src) {
-  return clone_host_to_device(n, src);
+  if (n == 0) {
+    return;
+  } else {
+    cudaMemcpy(dst, src, n * sizeof(T), cudaMemcpyHostToDevice);
+    check_cuda_errors();
+  }
 }
 
 template<> template<> template<typename T>
 void From<Device>::To<Device>::copy(const std::size_t n, const T* const src, T* const dst) {
-  return copy_device_to_device(n, src, dst);
-}
-
-template<> template<> template<typename T>
-T* From<Device>::To<Device>::clone(const std::size_t n, const T* const src) {
-  return clone_device_to_device(n, src);
+  if (n == 0) {
+    return;
+  } else {
+    cudaMemcpy(dst, src, n * sizeof(T), cudaMemcpyDeviceToDevice);
+    check_cuda_errors();
+  }
 }
 
 template<> template<> template<typename T>
 void From<Device>::To<Host>::copy(const std::size_t n, const T* const src, T* const dst) {
-  return copy_device_to_host(n, src, dst);
-}
-
-template<> template<> template<typename T>
-T* From<Device>::To<Host>::clone(const std::size_t n, const T* const src) {
-  return clone_device_to_host(n, src);
+  if (n == 0) {
+    return;
+  } else {
+    cudaMemcpy(dst, src, n * sizeof(T), cudaMemcpyDeviceToHost);
+    check_cuda_errors();
+  }
 }
 
 /*            *

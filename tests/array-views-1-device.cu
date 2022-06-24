@@ -158,7 +158,7 @@ __global__ void kernel_DeviceArrayView1DTest_Copy_2(ArrayView1D<Device, int> oth
 }
 
 TEST_F(DeviceArrayView1DTest, Copy) {
-  int* other_memory = alloc_device<int>(s0);
+  int* other_memory = Device::alloc<int>(s0);
   ArrayView1D<Device, int> other_array(s0, other_memory);
   kernel_DeviceArrayView1DTest_Copy_1<<<1, 1>>>(other_array);
   check_cuda_errors();
@@ -168,5 +168,5 @@ TEST_F(DeviceArrayView1DTest, Copy) {
   kernel_DeviceArrayView1DTest_Copy_2<<<1, 1>>>(other_array);
   check_cuda_errors();
 
-  free_device(other_memory);
+  Device::free(other_memory);
 }
