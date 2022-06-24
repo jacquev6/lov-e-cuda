@@ -30,7 +30,7 @@ cuda_example_source_files := $(wildcard examples/*.cu)
 lintable_source_files := lov-e.hpp $(cuda_unit_test_source_files) $(cpp_unit_test_source_files) $(cuda_example_source_files)
 
 # Intermediate files
-non_compilation_includes := $(patsubst %.cpp,build/deps/%-non-compilation.deps,$(cpp_unit_test_source_files))
+non_compilation_includes := $(patsubst %,build/deps/%.non-compilation.deps,$(cpp_unit_test_source_files) $(cuda_unit_test_source_files))
 
 # Output files
 object_files := $(patsubst %.cu,build/debug/%.o,$(cuda_unit_test_source_files)) $(patsubst %.cpp,build/debug/%.o,$(cpp_unit_test_source_files)) $(patsubst %.cu,build/debug/%.o,$(cuda_example_source_files))
@@ -80,7 +80,7 @@ unit-tests: $(unit_test_sentinel_files)
 
 $(foreach file,$(non_compilation_includes),$(eval include $(file)))
 
-build/deps/%-non-compilation.deps: %.cpp
+build/deps/%.non-compilation.deps: %
 	@mkdir -p $(dir $@)
 	@builder/make-non-compilation-tests-deps.py $^ >$@
 
