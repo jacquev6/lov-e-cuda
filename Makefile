@@ -91,6 +91,7 @@ gcc_flags := -std=c++17 -fopenmp -W -Wall -Wextra -Werror -pedantic -I/usr/local
 # Targets:
 # - 52: Vincent's GeForce GTX TITAN X and Laurent's GeForce GTX 980 Ti
 # - 75: Laurent's GeForce RTX 2080 Ti
+# @todo Put targets in a list and generate 'nvcc_targets'
 nvcc_targets := -arch=sm_75 -gencode=arch=compute_52,code=sm_52 -gencode=arch=compute_75,code=sm_75
 nvcc_flags := -std=c++17 -Xcompiler "-fopenmp -W -Wall -Wextra -Werror" $(nvcc_targets)
 
@@ -143,6 +144,11 @@ build/release/%: build/release/%.o
 
 # Run
 # ===
+
+# @todo Run unit tests with Valgrind
+# Run once without Valgrind to check multi-threaded behavior,
+# then once with Valgrind to check for invalid memory accesses.
+# (Valgrind effectively serializes all threads)
 
 build/%.ok: build/%
 	@echo "$<"
