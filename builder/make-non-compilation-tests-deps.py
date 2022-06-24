@@ -18,9 +18,9 @@ with open(source_file_name) as f:
 if line_numbers_with_tests:
     for line_number in line_numbers_with_tests:
         print()
-        print(f"non-compilation-tests: build/debug/{source_file_name[:-9]}-non-compilation-test-{line_number}.ok")
+        print(f"non-compilation-tests: build/debug/{source_file_name}-non-compilation-test-{line_number}.ok")
         print()
-        print(f"build/debug/{source_file_name[:-9]}-non-compilation-test-{line_number}.ok: {source_file_name} lov-e.hpp")
+        print(f"build/debug/{source_file_name}-non-compilation-test-{line_number}.ok: {source_file_name} lov-e.hpp")
         print(f'\t@echo "g++ -c $< -DEXPECT_COMPILE_ERROR={line_number}"')
         print("\t@mkdir -p $(dir $@)")
         print(f"\t@   g++ -c $(gcc_flags) $< -o $@-base.o")
