@@ -52,8 +52,15 @@ TEST_F(ArrayViewTest, ConvertToConst) {
   ArrayView2D<Host, const int> cm(m);
   EXPECT_EQ(cm[2][1], 43);
 
-  // @todo Expect compilation error when converting from const to non-const
-  // ArrayView2D<Host, int> ncm(cm);
+  // Can't write to a const
+  #if EXPECT_COMPILE_ERROR == __LINE__
+    cm[2][1] = 65;
+  #endif
+
+  // Cant' convert back to non-const
+  #if EXPECT_COMPILE_ERROR == __LINE__
+    ArrayView2D<Host, int> ncm(cm);
+  #endif
 }
 
 TEST_F(ArrayViewTest, IndexOnce) {
