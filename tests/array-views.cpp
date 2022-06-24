@@ -49,7 +49,10 @@ TEST_F(ArrayViewTest, Index) {
 }
 
 TEST_F(ArrayViewTest, ConvertToConst) {
+  // Can convert to const
   ArrayView2D<Host, const int> cm(m);
+
+  // Can read from const
   EXPECT_EQ(cm[2][1], 43);
 
   // Can't write to a const
