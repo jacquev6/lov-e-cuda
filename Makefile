@@ -56,7 +56,7 @@ cpplint: $(cpplint_sentinel_files)
 build/cpplint/%.ok: %
 	@echo "cpplint $<"
 	@mkdir -p $(dir $@)
-	@cpplint --linelength=120 $< | tee build/cpplint/$*.log
+	@cpplint --linelength=120 $< | tee $@.log
 	@touch $@
 
 
@@ -162,5 +162,5 @@ build/release/%: build/release/%.o
 build/%.ok: build/%
 	@echo "$<"
 	@mkdir -p build/$*-wd
-	@(cd build/$*-wd; $(root_directory)/$<) | tee build/$*.log
+	@(cd build/$*-wd; $(root_directory)/$<) | tee $@.log
 	@touch $@
