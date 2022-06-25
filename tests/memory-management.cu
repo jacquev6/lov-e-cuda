@@ -4,15 +4,44 @@
 #include <gtest/gtest.h>
 
 #include <cassert>
-#include <string>
 
 #include "../lov-e.hpp"
 
+
+
+struct Trivial {
+  int i;
+  char c;
+  bool b;
+  float f;
+  double d;
+};
+
+struct NonTrivial1 {
+  NonTrivial1() {}
+};
+
+struct NonTrivial2 {
+  virtual void f() {}
+};
 
 TEST(HostAllocTest, AllocateNonZero) {
   int* const p = Host::alloc<int>(10);
   EXPECT_NE(p, nullptr);
   Host::free(p);
+
+  // Can allocate any trivial type (https://en.cppreference.com/w/cpp/named_req/TrivialType)
+  Host::free(Host::alloc<float>(1));
+  Host::free(Host::alloc<double>(1));
+  Host::free(Host::alloc<Trivial>(1));
+
+  // Can't allocate non-trivial types
+  #if EXPECT_COMPILE_ERROR == __LINE__
+    Host::alloc<NonTrivial1>(1);
+  #endif
+  #if EXPECT_COMPILE_ERROR == __LINE__
+    Host::alloc<NonTrivial2>(1);
+  #endif
 }
 
 TEST(HostAllocTest, AllocateZero) {
@@ -53,6 +82,19 @@ TEST(DeviceAllocTest, AllocateNonZeroOnHost) {
   int* const p = Device::alloc<int>(10);
   EXPECT_NE(p, nullptr);
   Device::free(p);
+
+  // Can allocate any trivial type
+  Device::free(Device::alloc<float>(1));
+  Device::free(Device::alloc<double>(1));
+  Device::free(Device::alloc<Trivial>(1));
+
+  // Can't allocate non-trivial types
+  #if EXPECT_COMPILE_ERROR == __LINE__
+    Device::alloc<NonTrivial1>(1);
+  #endif
+  #if EXPECT_COMPILE_ERROR == __LINE__
+    Device::alloc<NonTrivial2>(1);
+  #endif
 }
 
 TEST(DeviceAllocTest, AllocateZeroOnHost) {

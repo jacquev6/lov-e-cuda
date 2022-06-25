@@ -11,6 +11,7 @@
 #include <cassert>
 #include <cstring>
 #include <exception>
+#include <type_traits>
 
 
 #ifdef __NVCC__
@@ -100,6 +101,7 @@ struct Host {
 
   template<typename T>
   static T* alloc(const std::size_t n) {
+    static_assert(std::is_trivial_v<T>);
     if (n == 0) {
       return nullptr;
     } else {
@@ -131,6 +133,10 @@ struct Device {
   template<typename T>
   HOST_DEVICE_DECORATORS
   static T* alloc(const std::size_t n) {
+    static_assert(std::is_trivial_v<T>);
+    // @todoc If your type is not technically trivial but you still think it's safe to 'malloc',
+    // you have two choices: 1) make it technically trivial or 2) implement your own versions of
+    // Hst and Device and use them instead of the ones provided by *Lov-e-cuda*.
     if (n == 0) {
       return nullptr;
     } else {

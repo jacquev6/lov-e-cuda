@@ -11,7 +11,7 @@ source_file_name = sys.argv[1]
 line_numbers_with_tests = []
 with open(source_file_name) as f:
     for line_number, line_text in enumerate(f):
-        if "EXPECT_COMPILE_ERROR" in line_text and not line_text.startswith("//"):
+        if "EXPECT_COMPILE_ERROR" in line_text and not line_text.lstrip().startswith("//"):
             line_numbers_with_tests.append(line_number + 1)
 
 if line_numbers_with_tests:
@@ -26,9 +26,9 @@ if line_numbers_with_tests:
             print(f"\t@   g++ -c $(gcc_flags) $< -o $@-base.o")
             print(f'\t@if g++ -c $(gcc_flags) $< -o $@-test.o -DEXPECT_COMPILE_ERROR={line_number} >$@.log 2>&1; then echo "{source_file_name}:{line_number}: non-compilation test failed"; false; else touch $@; fi')
         elif source_file_extension == ".cu":
-            print(f'\t@echo "nvcc -c $< -DEXPECT_COMPILE_ERROR={line_number}"')
+            print(f'\t@echo "nvcc -dc $< -DEXPECT_COMPILE_ERROR={line_number}"')
             print("\t@mkdir -p $(dir $@)")
-            print(f"\t@   nvcc -c $(nvcc_flags) $< -o $@-base.o")
-            print(f'\t@if nvcc -c $(nvcc_flags) $< -o $@-test.o -DEXPECT_COMPILE_ERROR={line_number} >$@.log 2>&1; then echo "{source_file_name}:{line_number}: non-compilation test failed"; false; else touch $@; fi')
+            print(f"\t@   nvcc -dc $(nvcc_flags) $< -o $@-base.o")
+            print(f'\t@if nvcc -dc $(nvcc_flags) $< -o $@-test.o -DEXPECT_COMPILE_ERROR={line_number} >$@.log 2>&1; then echo "{source_file_name}:{line_number}: non-compilation test failed"; false; else touch $@; fi')
         else:
             assert False
