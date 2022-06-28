@@ -40,10 +40,14 @@ object_files := \
     $(patsubst %.cu,build/debug/%.o,$(cuda_example_source_files)) \
     $(patsubst %.cu,build/release/%.o,$(cuda_example_source_files))
 binary_files := $(patsubst %.o,%,$(object_files))
-cpplint_sentinel_files := $(patsubst %,build/cpplint/%.ok,$(lintable_source_files))
+cpplint_sentinel_files := $(patsubst %,build/cpplint/%.cpplint.ok,$(lintable_source_files))
+# 'cuda-memcheck' fails on processes that 'assert' on device, so we don't run it on 'error-checking-*' tests
 unit_test_sentinel_files := \
-    $(patsubst %.cu,build/debug/%.ok,$(cuda_unit_test_source_files)) \
-    $(patsubst %.cpp,build/debug/%.ok,$(cpp_unit_test_source_files))
+    $(patsubst %.cu,build/debug/%.plain.ok,$(cuda_unit_test_source_files)) \
+    $(patsubst %.cu,build/debug/%.valgrind-memcheck.ok,$(cuda_unit_test_source_files)) \
+    $(patsubst %.cu,build/debug/%.cuda-memcheck.ok,$(filter-out tests/error-checking-%.cu,$(cuda_unit_test_source_files))) \
+    $(patsubst %.cpp,build/debug/%.plain.ok,$(cpp_unit_test_source_files)) \
+    $(patsubst %.cpp,build/debug/%.valgrind-memcheck.ok,$(cpp_unit_test_source_files))
 example_sentinel_files := $(patsubst %.cu,build/release/%.ok,$(cuda_example_source_files))
 
 ###############################
@@ -59,10 +63,10 @@ lint: cpplint
 .PHONY: cpplint
 cpplint: $(cpplint_sentinel_files)
 
-build/cpplint/%.ok: %
+build/cpplint/%.cpplint.ok: %
 	@echo "cpplint $<"
 	@mkdir -p $(dir $@)
-	@cpplint --linelength=120 $< 2>&1 | tee $@.log
+	@cpplint --linelength=120 $< 2>&1 | tee $(patsubst %.ok,%.log,$@) | (grep -v "Done processing $<" || true)
 	@touch $@
 
 
@@ -141,21 +145,26 @@ build/debug/examples/%: build/debug/examples/%.o
 	@nvcc $(nvcc_flags) $(debug_flags) $(link_flags) $^ -o $@
 
 # Run
-# - normally
-# - with Valgrind's memcheck
-# - with NVidia's cuda-memcheck
-# Notes:
-# - Valgrind and CUDA aren't very friendly to each other, so a pretty brutal suppression file is used
-#   to hide false positives. Sadly it may well hide true positives as well. But this is better than nothing.
-# - 'cuda-memcheck' fails on processes that 'assert' on device, so we don't run it on 'error-checking-*' tests
-build/debug/%.ok: build/debug/%
+build/debug/%.plain.ok: build/debug/%
 	@echo "$<"
-	@mkdir -p build/debug/$*-wd
-	@(cd build/debug/$*-wd; $(root_directory)/$<) 2>&1 | tee -a $@.log
-	@echo | tee -a $@.log
-	@(cd build/debug/$*-wd; valgrind --tool=memcheck --verbose --leak-check=full --show-leak-kinds=definite,indirect,possible --errors-for-leak-kinds=definite,indirect,possible --error-exitcode=1 --gen-suppressions=all --suppressions=$(root_directory)/builder/valgrind-cuda.supp $(root_directory)/$<) 2>&1 | tee -a $@.log
-	@echo | tee -a $@.log
-	@(cd build/debug/$*-wd; if (echo $@ | grep error-checking-); then echo "cuda-memcheck skipped"; else cuda-memcheck --tool memcheck --leak-check full --error-exitcode 1 $(root_directory)/$<; fi) 2>&1 | tee -a $@.log
+	@mkdir -p $(patsubst %.ok,%.wd,$@)
+	@(cd $(patsubst %.ok,%.wd,$@); $(root_directory)/$<) 2>&1 | tee $(patsubst %.ok,%.log,$@)
+	@touch $@
+
+# Run with Valgrind's memcheck
+# Notes that Valgrind and CUDA aren't very friendly to each other, so a pretty brutal suppression file is used
+# to hide false positives. Sadly it may well hide true positives as well. But this is better than nothing.
+build/debug/%.valgrind-memcheck.ok: build/debug/%
+	@echo "valgrind $<"
+	@mkdir -p $(patsubst %.ok,%.wd,$@)
+	@(cd $(patsubst %.ok,%.wd,$@); valgrind --tool=memcheck --verbose --leak-check=full --show-leak-kinds=definite,indirect,possible --errors-for-leak-kinds=definite,indirect,possible --error-exitcode=1 --gen-suppressions=all --suppressions=$(root_directory)/builder/valgrind-cuda.supp $(root_directory)/$<) 2>&1 | tee $(patsubst %.ok,%.log,$@)
+	@touch $@
+
+# Run with NVidia's 'cuda-memcheck'
+build/debug/%.cuda-memcheck.ok: build/debug/%
+	@echo "cuda-memcheck $<"
+	@mkdir -p $(patsubst %.ok,%.wd,$@)
+	@(cd $(patsubst %.ok,%.wd,$@); cuda-memcheck --tool memcheck --leak-check full --error-exitcode 1 $(root_directory)/$<) 2>&1 | tee $(patsubst %.ok,%.log,$@)
 	@touch $@
 
 
@@ -185,6 +194,6 @@ build/release/%: build/release/%.o
 # Run
 build/release/%.ok: build/release/%
 	@echo "$<"
-	@mkdir -p build/release/$*-wd
-	@(cd build/release/$*-wd; $(root_directory)/$<) 2>&1 | tee $@.log
+	@mkdir -p $(patsubst %.ok,%.wd,$@)
+	@(cd $(patsubst %.ok,%.wd,$@); $(root_directory)/$<) 2>&1 | tee $(patsubst %.ok,%.log,$@)
 	@touch $@
