@@ -264,7 +264,7 @@ int main(int, char*[]) {
   const int w = W;
   const int h = H;
 
-  Array2D<Device, int> d_dwells(h, w);
+  Array2D<Device, int> d_dwells(h, w, uninitialized);
 
   const Grid grid = grid::fixed(INIT_SUBDIV, INIT_SUBDIV);
 

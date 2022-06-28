@@ -594,7 +594,9 @@ void copy(ArrayView5D<WhereFrom, T> src, ArrayView5D<WhereTo, T> dst) {
  * Arrays *
  *        */
 
-// @todo Add parameter [uninitialized|zeroed] to Array?D
+// Constructor parameters
+enum Zeroed {zeroed};
+enum Uninitialized {uninitialized};
 
 // These classes have "owning pointer" semantics, so they follow the
 // [Rule of Five](http://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Rc-five)
@@ -602,7 +604,8 @@ void copy(ArrayView5D<WhereFrom, T> src, ArrayView5D<WhereTo, T> dst) {
 template<typename Where, typename T>
 class Array1D : public ArrayView1D<Where, T> {
  public:
-  explicit Array1D(unsigned s0) : ArrayView1D<Where, T>(s0, Where::template alloc<T>(s0)) {}
+  explicit Array1D(unsigned s0, Uninitialized) : ArrayView1D<Where, T>(s0, Where::template alloc<T>(s0)) {}
+  explicit Array1D(unsigned s0, Zeroed) : ArrayView1D<Where, T>(s0, Where::template alloc_zeroed<T>(s0)) {}
   ~Array1D() { Where::free(this->data_for_legacy_use()); }
 
   // @todo Make thorough inventory of compiler-generated functions (operator=, constructors, etc.)
@@ -612,7 +615,8 @@ class Array1D : public ArrayView1D<Where, T> {
 template<typename Where, typename T>
 class Array2D : public ArrayView2D<Where, T> {
  public:
-  Array2D(unsigned s1, unsigned s0) : ArrayView2D<Where, T>(s1, s0, Where::template alloc<T>(s1 * s0)) {}
+  Array2D(unsigned s1, unsigned s0, Uninitialized) : ArrayView2D<Where, T>(s1, s0, Where::template alloc<T>(s1 * s0)) {}
+  Array2D(unsigned s1, unsigned s0, Zeroed) : ArrayView2D<Where, T>(s1, s0, Where::template alloc_zeroed<T>(s1 * s0)) {}
   ~Array2D() { Where::free(this->data_for_legacy_use()); }
 };
 
@@ -620,7 +624,7 @@ class Array2D : public ArrayView2D<Where, T> {
 
 template<typename WhereTo, typename WhereFrom, typename T>
 Array2D<WhereTo, T> clone_to(ArrayView2D<WhereFrom, T> src) {
-  Array2D<WhereTo, T> dst(src.s1(), src.s0());
+  Array2D<WhereTo, T> dst(src.s1(), src.s0(), uninitialized);
   copy(src, dst);  // NOLINT(build/include_what_you_use)
   return dst;  // @todo Make it work even without RVO
   // (I think RVO is saving us from double-free until we implement a move constructor)
