@@ -11,6 +11,7 @@ RUN set -x \
       software-properties-common dirmngr gpg-agent `# Required when adding the NVidia APT repository` \
       make cmake g++ `# Build tools` \
       libpng-dev `# Development version of direct dependencies` \
+      valgrind `# Debug tools` \
  && apt-get clean
 
 # Google Test

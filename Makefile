@@ -33,11 +33,16 @@ lintable_source_files := lov-e.hpp $(cuda_unit_test_source_files) $(cpp_unit_tes
 non_compilation_includes := $(patsubst %,build/deps/%.non-compilation.deps,$(cpp_unit_test_source_files) $(cuda_unit_test_source_files))
 
 # Output files
-object_files := $(patsubst %.cu,build/debug/%.o,$(cuda_unit_test_source_files)) $(patsubst %.cpp,build/debug/%.o,$(cpp_unit_test_source_files)) $(patsubst %.cu,build/debug/%.o,$(cuda_example_source_files))
-object_files += $(patsubst %.cu,build/release/%.o,$(cuda_unit_test_source_files)) $(patsubst %.cpp,build/release/%.o,$(cpp_unit_test_source_files)) $(patsubst %.cu,build/release/%.o,$(cuda_example_source_files))
+object_files := \
+    $(patsubst %.cu,build/debug/%.o,$(cuda_unit_test_source_files)) \
+    $(patsubst %.cpp,build/debug/%.o,$(cpp_unit_test_source_files)) \
+    $(patsubst %.cu,build/debug/%.o,$(cuda_example_source_files)) \
+    $(patsubst %.cu,build/release/%.o,$(cuda_example_source_files))
 binary_files := $(patsubst %.o,%,$(object_files))
 cpplint_sentinel_files := $(patsubst %,build/cpplint/%.ok,$(lintable_source_files))
-unit_test_sentinel_files := $(patsubst %.cu,build/debug/%.ok,$(cuda_unit_test_source_files)) $(patsubst %.cpp,build/debug/%.ok,$(cpp_unit_test_source_files))
+unit_test_sentinel_files := \
+    $(patsubst %.cu,build/debug/%.ok,$(cuda_unit_test_source_files)) \
+    $(patsubst %.cpp,build/debug/%.ok,$(cpp_unit_test_source_files))
 example_sentinel_files := $(patsubst %.cu,build/release/%.ok,$(cuda_example_source_files))
 
 ###############################
@@ -56,7 +61,7 @@ cpplint: $(cpplint_sentinel_files)
 build/cpplint/%.ok: %
 	@echo "cpplint $<"
 	@mkdir -p $(dir $@)
-	@cpplint --linelength=120 $< | tee $@.log
+	@cpplint --linelength=120 $< 2>&1 | tee $@.log
 	@touch $@
 
 
@@ -128,6 +133,20 @@ build/debug/%: build/debug/%.o
 	@mkdir -p $(dir $@)
 	@nvcc $(nvcc_flags) $(debug_flags) $(link_flags) $^ -o $@
 
+# Run
+# - normally
+# - with Valgrind's memcheck
+# Note that Valgrind and CUDA aren't very friendly to each other, so a pretty brutal suppression file is used
+# to hide false positives. Sadly it may well hide true positives as well. But this is better than nothing.
+build/debug/%.ok: build/debug/%
+	@echo "$<"
+	@mkdir -p build/debug/$*-wd
+	@(cd build/debug/$*-wd; $(root_directory)/$<) 2>&1 | tee -a $@.log
+	@echo | tee -a $@.log
+	@(cd build/debug/$*-wd; valgrind --tool=memcheck --verbose --leak-check=full --show-leak-kinds=definite,indirect,possible --errors-for-leak-kinds=definite,indirect,possible --error-exitcode=1 --gen-suppressions=all --suppressions=$(root_directory)/builder/valgrind-cuda.supp $(root_directory)/$<) 2>&1 | tee -a $@.log
+	@touch $@
+
+
 # Release
 # =======
 
@@ -152,15 +171,8 @@ build/release/%: build/release/%.o
 	@nvcc $(nvcc_flags) $(nvcc_release_flags) $(link_flags) $^ -o $@
 
 # Run
-# ===
-
-# @todo Run unit tests with Valgrind
-# Run once without Valgrind to check multi-threaded behavior,
-# then once with Valgrind to check for invalid memory accesses.
-# (Valgrind effectively serializes all threads)
-
-build/%.ok: build/%
+build/release/%.ok: build/release/%
 	@echo "$<"
-	@mkdir -p build/$*-wd
-	@(cd build/$*-wd; $(root_directory)/$<) | tee $@.log
+	@mkdir -p build/release/$*-wd
+	@(cd build/release/$*-wd; $(root_directory)/$<) 2>&1 | tee $@.log
 	@touch $@
