@@ -19,7 +19,7 @@ __global__ void kernel_AllocDevice_AllocateNonZeroOnDevice() {
 
 TEST(DeviceAllocTest, AllocateNonZeroOnDevice) {
   kernel_AllocDevice_AllocateNonZeroOnDevice<<<1, 1>>>();
-  check_cuda_errors();
+  check_last_cuda_error();
 }
 
 __global__ void kernel_AllocDevice_AllocateZeroOnDevice() {
@@ -30,5 +30,5 @@ __global__ void kernel_AllocDevice_AllocateZeroOnDevice() {
 
 TEST(DeviceAllocTest, AllocateZeroOnDevice) {
   kernel_AllocDevice_AllocateZeroOnDevice<<<1, 1>>>();
-  check_cuda_errors();
+  check_last_cuda_error();
 }

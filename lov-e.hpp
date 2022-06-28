@@ -31,8 +31,8 @@ struct CudaError : public std::exception {
       file(file_), line(line_), error(error_) {
     snprintf(
       _what, sizeof(_what),
-      "CUDA ERROR, detected at %s:%i: %i %s",
-      file, line, static_cast<unsigned>(error), cudaGetErrorName(error));
+      "CUDA ERROR, detected at %s:%i: code %i=%s: %s",
+      file, line, static_cast<unsigned>(error), cudaGetErrorName(error), cudaGetErrorString(error));
   }
 
   const char* what() const noexcept override {
@@ -44,35 +44,40 @@ struct CudaError : public std::exception {
   const cudaError_t error;
 
  private:
-  char _what[128];
+  char _what[256];
 };
 
-// @todo Test the __device__ version
+// @todo Test the __device__ versions of the error checking functions
+
 HOST_DEVICE_DECORATORS
-inline void check_cuda_errors_no_sync_(const char* file, const unsigned line) {
-  // @todo Double-check that all error conditions can be detected using `cudaGetLastError`
-  // (i.e. that no error condition can *only* be detected in the return value of the function)
-  const cudaError_t error = cudaGetLastError();
-  if (error) {
+inline void check_cuda_error_(const cudaError_t error, const char* file, const unsigned line) {
+  if (error != cudaSuccess) {
     #ifdef __CUDA_ARCH__
       printf(
-        "CUDA ERROR, detected at %s:%i: %i %s\n",
-        file, line, static_cast<unsigned int>(error), cudaGetErrorName(error));
+        "CUDA ERROR, detected at %s:%i: code %i=%s: %s\n",
+        file, line, static_cast<unsigned int>(error), cudaGetErrorName(error), cudaGetErrorString(error));
     #else
       throw CudaError(file, line, error);
     #endif
   }
 }
 
-#define check_cuda_errors_no_sync() check_cuda_errors_no_sync_(__FILE__, __LINE__)
+#define check_cuda_error(e) check_cuda_error_(e, __FILE__, __LINE__)
 
 HOST_DEVICE_DECORATORS
-inline void check_cuda_errors_(const char* const file, const unsigned line) {
-  cudaDeviceSynchronize();
-  check_cuda_errors_no_sync_(file, line);
+inline void check_last_cuda_error_no_sync_(const char* file, const unsigned line) {
+  check_cuda_error_(cudaGetLastError(), file, line);
 }
 
-#define check_cuda_errors() check_cuda_errors_(__FILE__, __LINE__)
+#define check_last_cuda_error_no_sync() check_last_cuda_error_no_sync_(__FILE__, __LINE__)
+
+HOST_DEVICE_DECORATORS
+inline void check_last_cuda_error_(const char* const file, const unsigned line) {
+  cudaDeviceSynchronize();
+  check_last_cuda_error_no_sync_(file, line);
+}
+
+#define check_last_cuda_error() check_last_cuda_error_(__FILE__, __LINE__)
 
 /*                         *
  * Basic memory management *
@@ -122,7 +127,7 @@ struct Host {
 struct Device {
   template<typename T>
   static void memset(const std::size_t n, const char v, T* const p) {
-    cudaMemset(p, v, n * sizeof(T));
+    check_cuda_error(cudaMemset(p, v, n * sizeof(T)));
   }
 
   template<typename T>
@@ -141,8 +146,7 @@ struct Device {
       return nullptr;
     } else {
       T* p;
-      cudaMalloc(&p, n * sizeof(T));
-      check_cuda_errors();
+      check_cuda_error(cudaMalloc(&p, n * sizeof(T)));
       return p;
     }
   }
@@ -153,8 +157,7 @@ struct Device {
     if (p == nullptr) {
       return;
     } else {
-      cudaFree(p);
-      check_cuda_errors();
+      check_cuda_error(cudaFree(p));
     }
   }
 };
@@ -189,8 +192,7 @@ void From<Host>::To<Device>::copy(const std::size_t n, const T* const src, T* co
   if (n == 0) {
     return;
   } else {
-    cudaMemcpy(dst, src, n * sizeof(T), cudaMemcpyHostToDevice);
-    check_cuda_errors();
+    check_cuda_error(cudaMemcpy(dst, src, n * sizeof(T), cudaMemcpyHostToDevice));
   }
 }
 
@@ -199,8 +201,7 @@ void From<Device>::To<Device>::copy(const std::size_t n, const T* const src, T* 
   if (n == 0) {
     return;
   } else {
-    cudaMemcpy(dst, src, n * sizeof(T), cudaMemcpyDeviceToDevice);
-    check_cuda_errors();
+    check_cuda_error(cudaMemcpy(dst, src, n * sizeof(T), cudaMemcpyDeviceToDevice));
   }
 }
 
@@ -209,8 +210,7 @@ void From<Device>::To<Host>::copy(const std::size_t n, const T* const src, T* co
   if (n == 0) {
     return;
   } else {
-    cudaMemcpy(dst, src, n * sizeof(T), cudaMemcpyDeviceToHost);
-    check_cuda_errors();
+    check_cuda_error(cudaMemcpy(dst, src, n * sizeof(T), cudaMemcpyDeviceToHost));
   }
 }
 

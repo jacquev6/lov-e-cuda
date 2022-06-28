@@ -124,7 +124,7 @@ __global__ void Devicekernel_MemsetTest_MemsetOnHost(const std::size_t count, co
 TEST_F(DeviceMemsetTest, MemsetOnHost) {
   Device::memset(count, 0xAA, mem);
   Devicekernel_MemsetTest_MemsetOnHost<<<1, 1>>>(count, mem);
-  check_cuda_errors();
+  check_last_cuda_error();
 }
 
 __global__ void Devicekernel_MemsetTest_MemresetOnHost_1(const std::size_t count, uint16_t* const mem) {
@@ -141,7 +141,7 @@ TEST_F(DeviceMemsetTest, MemresetOnHost) {
   Devicekernel_MemsetTest_MemresetOnHost_1<<<1, 1>>>(count, mem);
   Device::memreset(count, mem);
   Devicekernel_MemsetTest_MemresetOnHost_2<<<1, 1>>>(count, mem);
-  check_cuda_errors();
+  check_last_cuda_error();
 }
 
 class CopyTest : public testing::Test {
@@ -171,7 +171,7 @@ TEST_F(CopyTest, CopyHostToDevice) {
   h[count - 1] = 65;
   From<Host>::To<Device>::copy(count, h, d);
   kernel_CopyTest_CopyHostToDevice<<<1, 1>>>(count, d);
-  check_cuda_errors();
+  check_last_cuda_error();
 }
 
 __global__ void kernel_CopyTest_CopyDeviceToHost(const std::size_t count, uint16_t* const d) {
@@ -193,7 +193,7 @@ TEST(CloneTest, CloneHostToDevice) {
   h[count - 1] = 65;
   uint16_t* d = From<Host>::To<Device>::clone(count, h);
   kernel_CopyTest_CopyHostToDevice<<<1, 1>>>(count, d);
-  check_cuda_errors();
+  check_last_cuda_error();
 
   Device::free(d);
   Host::free(h);
