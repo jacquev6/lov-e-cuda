@@ -36,6 +36,7 @@ RUN set -x \
  && DEBIAN_FRONTEND=noninteractive apt-get install --yes --no-install-recommends \
       cuda-cudart-dev-11-2 `# Development version of direct dependencies` \
       cuda-nvcc-11-2 `# Build tools` \
+      cuda-memcheck-11-2 `# Debug tools` \
  && apt-get clean
 
 # Put 'nvcc' in the PATH

@@ -8,7 +8,6 @@
 #include "../lov-e.hpp"
 
 
-
 struct Trivial {
   int i;
   char c;
@@ -101,28 +100,6 @@ TEST(DeviceAllocTest, AllocateZeroOnHost) {
   int* const p = Device::alloc<int>(0);
   EXPECT_EQ(p, nullptr);
   Device::free(p);
-}
-
-__global__ void kernel_AllocDevice_AllocateNonZeroOnDevice() {
-  int* const p = Device::alloc<int>(10);
-  assert(p != nullptr);
-  Device::free(p);
-}
-
-TEST(DeviceAllocTest, AllocateNonZeroOnDevice) {
-  kernel_AllocDevice_AllocateNonZeroOnDevice<<<1, 1>>>();
-  check_cuda_errors();
-}
-
-__global__ void kernel_AllocDevice_AllocateZeroOnDevice() {
-  int* const p = Device::alloc<int>(0);
-  assert(p == nullptr);
-  Device::free(p);
-}
-
-TEST(DeviceAllocTest, AllocateZeroOnDevice) {
-  kernel_AllocDevice_AllocateZeroOnDevice<<<1, 1>>>();
-  check_cuda_errors();
 }
 
 class DeviceMemsetTest : public testing::Test {
@@ -231,5 +208,6 @@ TEST(CloneTest, CloneDeviceToHost) {
   EXPECT_EQ(h[count - 1], 65);
 
   Host::free(h);
+  printf("B: d=%p\n", d);
   Device::free(d);
 }

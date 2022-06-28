@@ -25,15 +25,16 @@ root_directory := $(shell pwd)
 
 # Source files
 cuda_unit_test_source_files := $(wildcard tests/*.cu)
-cpp_unit_test_source_files := $(wildcard tests/*.cpp)
+cpp_unit_test_source_files := $(filter-out tests/main.cpp,$(wildcard tests/*.cpp))
 cuda_example_source_files := $(wildcard examples/*.cu)
-lintable_source_files := lov-e.hpp $(cuda_unit_test_source_files) $(cpp_unit_test_source_files) $(cuda_example_source_files)
+lintable_source_files := lov-e.hpp tests/main.cpp $(cuda_unit_test_source_files) $(cpp_unit_test_source_files) $(cuda_example_source_files)
 
 # Intermediate files
 non_compilation_includes := $(patsubst %,build/deps/%.non-compilation.deps,$(cpp_unit_test_source_files) $(cuda_unit_test_source_files))
 
 # Output files
 object_files := \
+    build/debug/tests/main.o \
     $(patsubst %.cu,build/debug/%.o,$(cuda_unit_test_source_files)) \
     $(patsubst %.cpp,build/debug/%.o,$(cpp_unit_test_source_files)) \
     $(patsubst %.cu,build/debug/%.o,$(cuda_example_source_files)) \
@@ -109,7 +110,7 @@ gcc_flags := -std=c++17 -fopenmp -W -Wall -Wextra -Werror -pedantic -I/usr/local
 nvcc_targets := -arch=sm_75 -gencode=arch=compute_52,code=sm_52 -gencode=arch=compute_75,code=sm_75
 nvcc_flags := -std=c++17 -Xcompiler "-fopenmp -W -Wall -Wextra -Werror" $(nvcc_targets)
 
-link_flags := -lgtest_main -lgtest -lpng
+link_flags := -lgtest -lpng
 
 # Debug
 # =====
@@ -127,8 +128,14 @@ build/debug/%.o: %.cpp lov-e.hpp
 	@mkdir -p $(dir $@)
 	@g++ -c  $(gcc_flags) $(debug_flags) $< -o $@
 
-# Link
-build/debug/%: build/debug/%.o
+# Link test executables
+build/debug/tests/%: build/debug/tests/%.o build/debug/tests/main.o
+	@echo "nvcc -o $@"
+	@mkdir -p $(dir $@)
+	@nvcc $(nvcc_flags) $(debug_flags) $(link_flags) $^ -o $@
+
+# Link examples executables
+build/debug/examples/%: build/debug/examples/%.o
 	@echo "nvcc -o $@"
 	@mkdir -p $(dir $@)
 	@nvcc $(nvcc_flags) $(debug_flags) $(link_flags) $^ -o $@
@@ -136,14 +143,19 @@ build/debug/%: build/debug/%.o
 # Run
 # - normally
 # - with Valgrind's memcheck
-# Note that Valgrind and CUDA aren't very friendly to each other, so a pretty brutal suppression file is used
-# to hide false positives. Sadly it may well hide true positives as well. But this is better than nothing.
+# - with NVidia's cuda-memcheck
+# Notes:
+# - Valgrind and CUDA aren't very friendly to each other, so a pretty brutal suppression file is used
+#   to hide false positives. Sadly it may well hide true positives as well. But this is better than nothing.
+# - 'cuda-memcheck' fails on processes that 'assert' on device, so we don't run it on 'error-checking-*' tests
 build/debug/%.ok: build/debug/%
 	@echo "$<"
 	@mkdir -p build/debug/$*-wd
 	@(cd build/debug/$*-wd; $(root_directory)/$<) 2>&1 | tee -a $@.log
 	@echo | tee -a $@.log
 	@(cd build/debug/$*-wd; valgrind --tool=memcheck --verbose --leak-check=full --show-leak-kinds=definite,indirect,possible --errors-for-leak-kinds=definite,indirect,possible --error-exitcode=1 --gen-suppressions=all --suppressions=$(root_directory)/builder/valgrind-cuda.supp $(root_directory)/$<) 2>&1 | tee -a $@.log
+	@echo | tee -a $@.log
+	@(cd build/debug/$*-wd; if (echo $@ | grep error-checking-); then echo "cuda-memcheck skipped"; else cuda-memcheck --tool memcheck --leak-check full --error-exitcode 1 $(root_directory)/$<; fi) 2>&1 | tee -a $@.log
 	@touch $@
 
 
