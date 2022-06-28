@@ -166,7 +166,7 @@ int main(int, char*[]) {
 
   const double t1 = omp_get_wtime();
   mandelbrot_k<<<CONFIG(grid)>>>(d_dwells, complex(-1.5, -1), complex(0.5, 1));
-  check_cuda_errors();
+  check_last_cuda_error();
 
   const double t2 = omp_get_wtime();
 

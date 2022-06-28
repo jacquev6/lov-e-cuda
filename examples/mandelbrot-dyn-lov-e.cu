@@ -257,7 +257,7 @@ void mandelbrot_block_k(
       const Grid grid = grid::make(d, d);
       mandelbrot_pixel_k<<<CONFIG(grid)>>>(dwells, cmin, cmax, x0, y0, d);
     }
-    check_cuda_errors_no_sync();
+    check_last_cuda_error_no_sync();
   }
 }
 
@@ -271,7 +271,7 @@ int main(int, char*[]) {
 
   const double t1 = omp_get_wtime();
   mandelbrot_block_k<<<CONFIG(grid)>>>(d_dwells, complex(-1.5, -1), complex(0.5, 1), 0, 0, w / INIT_SUBDIV, 1);
-  check_cuda_errors();
+  check_last_cuda_error();
   const double t2 = omp_get_wtime();
 
   Array2D<Host, int> h_dwells = clone_to<Host>(d_dwells);
