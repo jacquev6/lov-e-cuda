@@ -79,16 +79,6 @@ inline void check_last_cuda_error_(const char* const file, const unsigned line) 
 
 #define check_last_cuda_error() check_last_cuda_error_(__FILE__, __LINE__)
 
-/*                         *
- * Basic memory management *
- *                         */
-
-// @todo Add parameter [uninitialized|zeroed] to `alloc_*` and Array?D
-// @todo Statically ensure that T is trivially constructible and copyable
-// (its Ctor will not be called when we use malloc/free)
-// @todo Consider initializing the memory to a 'weird' value in debug mode.
-// Maybe specialize that value by type? Signaling NaN has some appeal for floats, what about ints?
-
 /*                   *
  * Memory management *
  *                   */
@@ -110,8 +100,27 @@ struct Host {
     if (n == 0) {
       return nullptr;
     } else {
-      return reinterpret_cast<T*>(std::malloc(n * sizeof(T)));
+      T* const p = reinterpret_cast<T*>(std::malloc(n * sizeof(T)));
+      #ifndef NDEBUG
+        // Attempt to make use of uninitialized memory more noticeable by actually
+        // initializing it to a large weird-looking value made of a repeated byte.
+        // The repetition of the byte 0x66 yields the following values:
+        // - 8-bits integer: 102
+        // - 16-bits integer: 26214
+        // - 32-bits integer: 1717986918
+        // - 64-bits integer: 7378697629483820646
+        // - IEEE 754 float: 2.72008e+23
+        // - IEEE 754 double: 1.9035985662552932e+185
+        memset(n, 0x66, p);
+      #endif
+      return p;
     }
+  }
+
+  template<typename T>
+  static T* alloc_zeored(const std::size_t n) {
+    T* const p = alloc<T>(n);
+    memreset(n, p);
   }
 
   template<typename T>
@@ -149,6 +158,12 @@ struct Device {
       check_cuda_error(cudaMalloc(&p, n * sizeof(T)));
       return p;
     }
+  }
+
+  template<typename T>
+  static T* alloc_zeored(const std::size_t n) {
+    T* const p = alloc<T>(n);
+    memreset(n, p);
   }
 
   template<typename T>
@@ -406,12 +421,125 @@ class ArrayView3D {
   T* _data;
 };
 
-// @todo Support dimensions up to 5
-// @todo Evaluate if we could use a template definition where the dimension is a template parameter
-// and use typedefs for dimensions 1 to 5.
-// @todo Use typedefs for Host/Device as well.
+template<typename Where, typename T>
+class ArrayView4D {
+ public:
+  // Constructor
+  HOST_DEVICE_DECORATORS
+  ArrayView4D(unsigned s3, unsigned s2, unsigned s1, unsigned s0, T* data) :
+    _s3(s3), _s2(s2), _s1(s1), _s0(s0), _data(data) {}
 
-// @todo Add `copy` for other dimensions
+  // No need for custom copy and move constructors and operators (cf. "Rule Of Zero" above)
+
+  // Generalized copy constructor and operator
+  template<typename U>
+  HOST_DEVICE_DECORATORS
+  ArrayView4D(const ArrayView4D<Where, U>& o) :
+    _s3(o.s3()), _s2(o.s2()), _s1(o.s1()), _s0(o.s0()), _data(o.data_for_legacy_use()) {}
+
+  template<typename U>
+  HOST_DEVICE_DECORATORS
+  ArrayView4D& operator=(const ArrayView4D<Where, U>& o) {
+    _s3 = o.s3();
+    _s2 = o.s2();
+    _s1 = o.s1();
+    _s0 = o.s0();
+    _data = o.data_for_legacy_use();
+    return *this;
+  }
+
+  // Accessors
+  HOST_DEVICE_DECORATORS
+  unsigned s3() const { return _s3; }
+
+  HOST_DEVICE_DECORATORS
+  unsigned s2() const { return _s2; }
+
+  HOST_DEVICE_DECORATORS
+  unsigned s1() const { return _s1; }
+
+  HOST_DEVICE_DECORATORS
+  unsigned s0() const { return _s0; }
+
+  HOST_DEVICE_DECORATORS
+  ArrayView3D<Where, T> operator[](unsigned i3) const {
+    assert(i3 < _s3);
+    return ArrayView3D<Where, T>(_s2, _s1, _s0, _data + i3 * _s2);
+  }
+
+  HOST_DEVICE_DECORATORS
+  T* data_for_legacy_use() const { return _data; }
+
+ private:
+  unsigned _s3;
+  unsigned _s2;
+  unsigned _s1;
+  unsigned _s0;
+  T* _data;
+};
+
+template<typename Where, typename T>
+class ArrayView5D {
+ public:
+  // Constructor
+  HOST_DEVICE_DECORATORS
+  ArrayView5D(unsigned s4, unsigned s3, unsigned s2, unsigned s1, unsigned s0, T* data) :
+    _s4(s4), _s3(s3), _s2(s2), _s1(s1), _s0(s0), _data(data) {}
+
+  // No need for custom copy and move constructors and operators (cf. "Rule Of Zero" above)
+
+  // Generalized copy constructor and operator
+  template<typename U>
+  HOST_DEVICE_DECORATORS
+  ArrayView5D(const ArrayView5D<Where, U>& o) :
+    _s4(o.s4()), _s3(o.s3()), _s2(o.s2()), _s1(o.s1()), _s0(o.s0()), _data(o.data_for_legacy_use()) {}
+
+  template<typename U>
+  HOST_DEVICE_DECORATORS
+  ArrayView5D& operator=(const ArrayView5D<Where, U>& o) {
+    _s4 = o.s4();
+    _s3 = o.s3();
+    _s2 = o.s2();
+    _s1 = o.s1();
+    _s0 = o.s0();
+    _data = o.data_for_legacy_use();
+    return *this;
+  }
+
+  // Accessors
+  HOST_DEVICE_DECORATORS
+  unsigned s4() const { return _s4; }
+
+  HOST_DEVICE_DECORATORS
+  unsigned s3() const { return _s3; }
+
+  HOST_DEVICE_DECORATORS
+  unsigned s2() const { return _s2; }
+
+  HOST_DEVICE_DECORATORS
+  unsigned s1() const { return _s1; }
+
+  HOST_DEVICE_DECORATORS
+  unsigned s0() const { return _s0; }
+
+  HOST_DEVICE_DECORATORS
+  ArrayView4D<Where, T> operator[](unsigned i4) const {
+    assert(i4 < _s4);
+    return ArrayView4D<Where, T>(_s3, _s2, _s1, _s0, _data + i4 * _s3);
+  }
+
+  HOST_DEVICE_DECORATORS
+  T* data_for_legacy_use() const { return _data; }
+
+ private:
+  unsigned _s4;
+  unsigned _s3;
+  unsigned _s2;
+  unsigned _s1;
+  unsigned _s0;
+  T* _data;
+};
+
 template<typename WhereFrom, typename WhereTo, typename T>
 void copy(ArrayView1D<WhereFrom, T> src, ArrayView1D<WhereTo, T> dst) {
   assert(dst.s0() == src.s0());
@@ -439,14 +567,38 @@ void copy(ArrayView3D<WhereFrom, T> src, ArrayView3D<WhereTo, T> dst) {
     src.s2() * src.s1() * src.s0(), src.data_for_legacy_use(), dst.data_for_legacy_use());
 }
 
+template<typename WhereFrom, typename WhereTo, typename T>
+void copy(ArrayView4D<WhereFrom, T> src, ArrayView4D<WhereTo, T> dst) {
+  assert(dst.s3() == src.s3());
+  assert(dst.s2() == src.s2());
+  assert(dst.s1() == src.s1());
+  assert(dst.s0() == src.s0());
+
+  From<WhereFrom>::template To<WhereTo>::template copy(
+    src.s3() * src.s2() * src.s1() * src.s0(), src.data_for_legacy_use(), dst.data_for_legacy_use());
+}
+
+template<typename WhereFrom, typename WhereTo, typename T>
+void copy(ArrayView5D<WhereFrom, T> src, ArrayView5D<WhereTo, T> dst) {
+  assert(dst.s4() == src.s4());
+  assert(dst.s3() == src.s3());
+  assert(dst.s2() == src.s2());
+  assert(dst.s1() == src.s1());
+  assert(dst.s0() == src.s0());
+
+  From<WhereFrom>::template To<WhereTo>::template copy(
+    src.s4() *  src.s3() * src.s2() * src.s1() * src.s0(), src.data_for_legacy_use(), dst.data_for_legacy_use());
+}
+
 /*        *
  * Arrays *
  *        */
 
+// @todo Add parameter [uninitialized|zeroed] to Array?D
+
 // These classes have "owning pointer" semantics, so they follow the
 // [Rule of Five](http://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Rc-five)
 
-// @todo Is inheritance the best here?
 template<typename Where, typename T>
 class Array1D : public ArrayView1D<Where, T> {
  public:
@@ -487,9 +639,6 @@ struct Grid {
 
 #define CONFIG(grid) grid.blocks, grid.threads
 
-// @todo Merge GridFactory?D and Block?D
-// they should always be used with the same BLOCKDIM_X, BLOCKDIM_Y, so keeping them separate is error-prone
-// @todo Consider giving a similar way to create Grids but with block sizes decided at runtime
 template<unsigned BLOCKDIM_X, unsigned BLOCKDIM_Y>
 struct GridFactory2D {
   HOST_DEVICE_DECORATORS
@@ -510,13 +659,8 @@ struct GridFactory2D {
       dim3(BLOCKDIM_X, BLOCKDIM_Y, 1),
     };
   }
-};
-
 
 #ifdef __NVCC__
-
-template<unsigned BLOCKDIM_X, unsigned BLOCKDIM_Y>
-struct Block2D {
   __device__ static unsigned x() {
     assert(blockDim.x == BLOCKDIM_X);
     return blockIdx.x * BLOCKDIM_X + threadIdx.x;
@@ -526,9 +670,8 @@ struct Block2D {
     assert(blockDim.y == BLOCKDIM_Y);
     return blockIdx.y * BLOCKDIM_Y + threadIdx.y;
   }
-};
-
 #endif  // __NVCC__
+};
 
 #undef HOST_DEVICE_DECORATORS
 #undef DEVICE_DECORATOR

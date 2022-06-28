@@ -136,7 +136,6 @@ int pixel_dwell(int w, int h, complex cmin, complex cmax, int x, int y) {
 }
 
 typedef GridFactory2D<BSX, BSY> grid;
-typedef Block2D<BSX, BSY> block;
 
 /*
 Compute the dwells for Mandelbrot image
@@ -151,8 +150,8 @@ __global__
 void mandelbrot_k(ArrayView2D<Device, int> dwells, complex cmin, complex cmax) {
   const unsigned h = dwells.s1();
   const unsigned w = dwells.s0();
-  const int x = block::x();
-  const int y = block::y();
+  const int x = grid::x();
+  const int y = grid::y();
   dwells[y][x] = pixel_dwell(w, h, cmin, cmax, x, y);
 }
 
