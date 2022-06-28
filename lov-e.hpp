@@ -96,7 +96,7 @@ struct Host {
 
   template<typename T>
   static T* alloc(const std::size_t n) {
-    static_assert(std::is_trivial_v<T>);
+    static_assert(std::is_trivial<T>::value, "T must be trivially constructible and copyable");
     if (n == 0) {
       return nullptr;
     } else {
@@ -147,7 +147,7 @@ struct Device {
   template<typename T>
   HOST_DEVICE_DECORATORS
   static T* alloc(const std::size_t n) {
-    static_assert(std::is_trivial_v<T>);
+    static_assert(std::is_trivial<T>::value, "T must be trivially constructible and copyable");
     // @todoc If your type is not technically trivial but you still think it's safe to 'malloc',
     // you have two choices: 1) make it technically trivial or 2) implement your own versions of
     // Hst and Device and use them instead of the ones provided by *Lov-e-cuda*.

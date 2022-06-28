@@ -105,14 +105,14 @@ examples: $(example_sentinel_files)
 #################
 
 # Ah the pain of enabling "all" 'g++' warnings... https://stackoverflow.com/a/11720263/905845
-gcc_flags := -std=c++17 -fopenmp -W -Wall -Wextra -Werror -pedantic -I/usr/local/cuda-11.2/targets/x86_64-linux/include
+gcc_flags := -std=c++11 -fopenmp -W -Wall -Wextra -Werror -pedantic -I/usr/local/cuda-11.2/targets/x86_64-linux/include
 
 # Targets:
 # - 52: Vincent's GeForce GTX TITAN X and Laurent's GeForce GTX 980 Ti
 # - 75: Laurent's GeForce RTX 2080 Ti
 # @todo Put targets in a list and generate 'nvcc_targets'
 nvcc_targets := -arch=sm_75 -gencode=arch=compute_52,code=sm_52 -gencode=arch=compute_75,code=sm_75
-nvcc_flags := -std=c++17 -Xcompiler "-fopenmp -W -Wall -Wextra -Werror" $(nvcc_targets)
+nvcc_flags := -std=c++11 -Xcompiler "-fopenmp -W -Wall -Wextra -Werror" $(nvcc_targets)
 
 link_flags := -lgtest -lpng
 
