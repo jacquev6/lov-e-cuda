@@ -273,7 +273,7 @@ int main(int, char*[]) {
   check_last_cuda_error();
   const double t2 = omp_get_wtime();
 
-  Array2D<Host, int> h_dwells = clone_to<Host>(d_dwells);
+  Array2D<Host, int> h_dwells = d_dwells.clone_to<Host>();
   save_image(IMAGE_PATH, h_dwells);
 
   const double gpu_time = t2 - t1;

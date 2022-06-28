@@ -233,6 +233,13 @@ void From<Device>::To<Host>::copy(const std::size_t n, const T* const src, T* co
  * ArrayViews *
  *            */
 
+// Forward declarations for 'friend' declarations
+template<typename Where, typename T> class Array1D;
+template<typename Where, typename T> class Array2D;
+template<typename Where, typename T> class Array3D;
+template<typename Where, typename T> class Array4D;
+template<typename Where, typename T> class Array5D;
+
 // These classes have "non-owning pointer" semantics, so they follow the
 // [Rule of Zero](http://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Rc-zero)
 
@@ -280,6 +287,8 @@ class ArrayView1D<Host, T> {
  private:
   unsigned _s0;
   T* _data;
+
+  friend class Array1D<Host, T>;
 };
 
 #ifdef __NVCC__
@@ -322,6 +331,8 @@ class ArrayView1D<Device, T> {
  private:
   unsigned _s0;
   T* _data;
+
+  friend class Array1D<Device, T>;
 };
 
 #endif
@@ -369,6 +380,8 @@ class ArrayView2D {
   unsigned _s1;
   unsigned _s0;
   T* _data;
+
+  friend class Array2D<Where, T>;
 };
 
 template<typename Where, typename T>
@@ -419,6 +432,8 @@ class ArrayView3D {
   unsigned _s1;
   unsigned _s0;
   T* _data;
+
+  friend class Array3D<Where, T>;
 };
 
 template<typename Where, typename T>
@@ -476,6 +491,8 @@ class ArrayView4D {
   unsigned _s1;
   unsigned _s0;
   T* _data;
+
+  friend class Array4D<Where, T>;
 };
 
 template<typename Where, typename T>
@@ -538,6 +555,8 @@ class ArrayView5D {
   unsigned _s1;
   unsigned _s0;
   T* _data;
+
+  friend class Array5D<Where, T>;
 };
 
 template<typename WhereFrom, typename WhereTo, typename T>
@@ -604,32 +623,77 @@ enum Uninitialized {uninitialized};
 template<typename Where, typename T>
 class Array1D : public ArrayView1D<Where, T> {
  public:
-  explicit Array1D(unsigned s0, Uninitialized) : ArrayView1D<Where, T>(s0, Where::template alloc<T>(s0)) {}
-  explicit Array1D(unsigned s0, Zeroed) : ArrayView1D<Where, T>(s0, Where::template alloc_zeroed<T>(s0)) {}
-  ~Array1D() { Where::free(this->data_for_legacy_use()); }
+  // RAII
+  explicit Array1D(unsigned s0, Uninitialized) :
+    ArrayView1D<Where, T>(s0, Where::template alloc<T>(s0))
+  {}
+  explicit Array1D(unsigned s0, Zeroed) :
+    ArrayView1D<Where, T>(s0, Where::template alloc_zeroed<T>(s0))
+  {}
+  ~Array1D() {
+    Where::free(this->_data);
+  }
 
-  // @todo Make thorough inventory of compiler-generated functions (operator=, constructors, etc.)
-  // and implement/delete them as required
+  // Not copyable (because we don't want to implicitly copy the underlying memory)
+  Array1D(const Array1D&) = delete;
+  Array1D& operator=(const Array1D&) = delete;
+
+  // But movable
+  Array1D(Array1D&& o) : ArrayView1D<Where, T>(o) {
+    // (we don't use std::exchange to stay compatible with C++11)
+    o._data = nullptr;
+  }
+  Array1D& operator=(Array1D&& o) {
+    static_cast<ArrayView1D<Where, T>&>(*this) = o;
+    o._data = nullptr;
+  }
+
+  // And clonable
+  template<typename WhereTo>
+  Array1D<WhereTo, T> clone_to() {
+    Array1D<WhereTo, T> dst(this->s0(), uninitialized);
+    copy(*this, dst);  // NOLINT(build/include_what_you_use)
+    return dst;
+  }
 };
 
 template<typename Where, typename T>
 class Array2D : public ArrayView2D<Where, T> {
  public:
-  Array2D(unsigned s1, unsigned s0, Uninitialized) : ArrayView2D<Where, T>(s1, s0, Where::template alloc<T>(s1 * s0)) {}
-  Array2D(unsigned s1, unsigned s0, Zeroed) : ArrayView2D<Where, T>(s1, s0, Where::template alloc_zeroed<T>(s1 * s0)) {}
-  ~Array2D() { Where::free(this->data_for_legacy_use()); }
+  // RAII
+  Array2D(unsigned s1, unsigned s0, Uninitialized) :
+    ArrayView2D<Where, T>(s1, s0, Where::template alloc<T>(s1 * s0))
+  {}
+  Array2D(unsigned s1, unsigned s0, Zeroed) :
+    ArrayView2D<Where, T>(s1, s0, Where::template alloc_zeroed<T>(s1 * s0))
+  {}
+  ~Array2D() {
+    Where::free(this->_data);
+  }
+
+  // Not copyable
+  Array2D(const Array2D&) = delete;
+  Array2D& operator=(const Array2D&) = delete;
+
+  // But movable
+  Array2D(Array2D&& o) : ArrayView2D<Where, T>(o) {
+    o._data = nullptr;
+  }
+  Array2D& operator=(Array2D&& o) {
+    static_cast<ArrayView2D<Where, T>&>(*this) = o;
+    o._data = nullptr;
+  }
+
+  // And clonable
+  template<typename WhereTo>
+  Array2D<WhereTo, T> clone_to() {
+    Array2D<WhereTo, T> dst(this->s1(), this->s0(), uninitialized);
+    copy(*this, dst);  // NOLINT(build/include_what_you_use)
+    return dst;
+  }
 };
 
 // @todo Support dimensions up to 5
-
-template<typename WhereTo, typename WhereFrom, typename T>
-Array2D<WhereTo, T> clone_to(ArrayView2D<WhereFrom, T> src) {
-  Array2D<WhereTo, T> dst(src.s1(), src.s0(), uninitialized);
-  copy(src, dst);  // NOLINT(build/include_what_you_use)
-  return dst;  // @todo Make it work even without RVO
-  // (I think RVO is saving us from double-free until we implement a move constructor)
-}
-// @todo Add `clone_to` for other dimensions
 
 
 /*                          *
