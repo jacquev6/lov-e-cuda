@@ -60,7 +60,6 @@ void save_image(const char* filename, int* dwells, unsigned w, unsigned h) {
   FILE* fp = fopen(filename, "wb");
   png_structp png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, 0, 0, 0);
   png_infop info_ptr = png_create_info_struct(png_ptr);
-  setjmp(png_jmpbuf(png_ptr));
   png_init_io(png_ptr, fp);
   png_set_IHDR(
     png_ptr, info_ptr, w, h, 8, PNG_COLOR_TYPE_RGB,
