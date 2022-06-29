@@ -83,20 +83,15 @@ inline void check_last_cuda_error_(const char* const file, const unsigned line) 
  * Memory management *
  *                   */
 
-struct Host {
+class Host {
+ private:
   template<typename T>
-  static void memset(const std::size_t n, const char v, T* const p) {
-    std::memset(p, v, n * sizeof(T));
+  static void force_memset(const std::size_t n, const char v, T* const p) {
+    std::memset(reinterpret_cast<void*>(p), v, n * sizeof(T));
   }
 
   template<typename T>
-  static void memreset(const std::size_t n, T* const p) {
-    memset(n, 0, p);
-  }
-
-  template<typename T>
-  static T* alloc(const std::size_t n) {
-    static_assert(std::is_trivial<T>::value, "T must be trivially constructible and copyable");
+  static T* force_alloc(const std::size_t n) {
     if (n == 0) {
       return nullptr;
     } else {
@@ -117,10 +112,29 @@ struct Host {
     }
   }
 
+ public:
   template<typename T>
-  static T* alloc_zeored(const std::size_t n) {
+  static void memset(const std::size_t n, const char v, T* const p) {
+    static_assert(std::is_trivial<T>::value, "T must be trivial. Workaround: search for 'trivial' in the doc.");
+    force_memset<T>(n, v, p);
+  }
+
+  template<typename T>
+  static void memreset(const std::size_t n, T* const p) {
+    memset(n, 0, p);
+  }
+
+  template<typename T>
+  static T* alloc(const std::size_t n) {
+    static_assert(std::is_trivial<T>::value, "T must be trivial. Workaround: search for 'trivial' in the doc.");
+    return force_alloc<T>(n);
+  }
+
+  template<typename T>
+  static T* alloc_zeroed(const std::size_t n) {
     T* const p = alloc<T>(n);
     memreset(n, p);
+    return p;
   }
 
   template<typename T>
@@ -133,10 +147,30 @@ struct Host {
   }
 };
 
-struct Device {
+class Device {
+ private:
+  template<typename T>
+  static void force_memset(const std::size_t n, const char v, T* const p) {
+    check_cuda_error(cudaMemset(p, v, n * sizeof(T)));
+  }
+
+  template<typename T>
+  HOST_DEVICE_DECORATORS
+  static T* force_alloc(const std::size_t n) {
+    if (n == 0) {
+      return nullptr;
+    } else {
+      T* p;
+      check_cuda_error(cudaMalloc(&p, n * sizeof(T)));
+      return p;
+    }
+  }
+
+ public:
   template<typename T>
   static void memset(const std::size_t n, const char v, T* const p) {
-    check_cuda_error(cudaMemset(p, v, n * sizeof(T)));
+    static_assert(std::is_trivial<T>::value, "T must be trivial. Workaround: search for 'trivial' in the doc.");
+    force_memset<T>(n, v, p);
   }
 
   template<typename T>
@@ -147,23 +181,15 @@ struct Device {
   template<typename T>
   HOST_DEVICE_DECORATORS
   static T* alloc(const std::size_t n) {
-    static_assert(std::is_trivial<T>::value, "T must be trivially constructible and copyable");
-    // @todoc If your type is not technically trivial but you still think it's safe to 'malloc',
-    // you have two choices: 1) make it technically trivial or 2) implement your own versions of
-    // Hst and Device and use them instead of the ones provided by *Lov-e-cuda*.
-    if (n == 0) {
-      return nullptr;
-    } else {
-      T* p;
-      check_cuda_error(cudaMalloc(&p, n * sizeof(T)));
-      return p;
-    }
+    static_assert(std::is_trivial<T>::value, "T must be trivial. Workaround: search for 'trivial' in the doc.");
+    return force_alloc<T>(n);
   }
 
   template<typename T>
-  static T* alloc_zeored(const std::size_t n) {
+  static T* alloc_zeroed(const std::size_t n) {
     T* const p = alloc<T>(n);
     memreset(n, p);
+    return p;
   }
 
   template<typename T>

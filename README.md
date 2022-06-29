@@ -93,6 +93,7 @@ All performance below have been measured on code compiled with `-O3 -DNDEBUG`.
 # User manual
 
 ## Memory management
+<!-- @todo Document how to allocate and memset non-trivial types -->
 
 ## Multi-dimensional-array-like memory access
 
