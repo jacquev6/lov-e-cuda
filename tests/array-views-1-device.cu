@@ -170,3 +170,10 @@ TEST_F(DeviceArrayView1DTest, Copy) {
 
   Device::free(other_memory);
 }
+
+TEST_F(DeviceArrayView1DTest, Clone) {
+  Array1D<Device, int> other_array = array.clone_to<Device>();
+
+  kernel_DeviceArrayView1DTest_Copy_2<<<1, 1>>>(other_array);
+  check_last_cuda_error();
+}

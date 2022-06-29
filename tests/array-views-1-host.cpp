@@ -98,3 +98,8 @@ TEST_F(HostArrayView1DTest, Copy) {
   EXPECT_EQ(other_array[0], 0);
   EXPECT_EQ(other_array[4], 12);
 }
+
+TEST_F(HostArrayView1DTest, Clone) {
+  Array1D<Host, int> other_array = array.clone_to<Host>();
+  EXPECT_EQ(other_array[4], 12);
+}

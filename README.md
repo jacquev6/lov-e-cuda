@@ -84,10 +84,12 @@ Based on this [NVidia blog article by Andy Adinets about dynamic parallelism](ht
 All performance below have been measured on code compiled with `-O3 -DNDEBUG`.
 
 <!-- BEGIN GENERATED SECTION: examples-performance-table -->
+
 | Example | Without *Lov-e-cuda* | With *Lov-e-cuda* |
 | --- | --- | --- |
 | Mandelbrot<br>(static parallelism) | 183 ms *i.e.* 1464 Mpix/s | 191 ms *i.e.* 1407 Mpix/s |
 | Mandelbrot<br>(dynamic parallelism) | 43 ms *i.e.* 6272 Mpix/s | 36 ms *i.e.* 7515 Mpix/s |
+
 <!-- END GENERATED SECTION: examples-performance-table -->
 
 # User manual

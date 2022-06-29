@@ -16,7 +16,6 @@
 
 #ifdef __NVCC__
 #define HOST_DEVICE_DECORATORS __host__ __device__
-#define DEVICE_DECORATOR __device__
 #else
 #define HOST_DEVICE_DECORATORS
 #endif
@@ -255,27 +254,31 @@ void From<Device>::To<Host>::copy(const std::size_t n, const T* const src, T* co
   }
 }
 
-/*            *
- * ArrayViews *
- *            */
+/*                       *
+ * Arrays and ArrayViews *
+ *                       */
 
-// Forward declarations for 'friend' declarations
+// The 'ArrayView?D' classes have "non-owning pointer" semantics, so they follow the
+// [Rule of Zero](http://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Rc-zero).
+
+// Constructor parameters for 'Array?D'
+enum Zeroed {zeroed};
+enum Uninitialized {uninitialized};
+
+// The 'Array?D' classes have "owning pointer" semantics, so they follow the
+// [Rule of Five](http://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Rc-five).
+
+// Forward declaration for 'friend' declaration
 template<typename Where, typename T> class Array1D;
-template<typename Where, typename T> class Array2D;
-template<typename Where, typename T> class Array3D;
-template<typename Where, typename T> class Array4D;
-template<typename Where, typename T> class Array5D;
 
-// These classes have "non-owning pointer" semantics, so they follow the
-// [Rule of Zero](http://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Rc-zero)
+// The one-dimensional case is special because its operator[] actually accesses the underlying memory.
+// Trying to access device memory from the host (and reciprocally) fails at run time. We provide
+// specializations for each possible 'Where', to decorate (with '__host__' and/or '__device__') the
+// 'T& operator[](unsigned i0)' to forbid that *during compilation*. This implies some code duplication,
+// but it's worth it.
 
-template<typename Where, typename T>
-class ArrayView1D;
+template<typename Where, typename T> class ArrayView1D;
 
-// Provide specializations for each possible 'Where', to decorate (__host__ and/or __device__) the
-// 'T& operator[](unsigned i0)' to avoid *during compilation* dereferencing a device pointer
-// on the host and reciprocally.
-// Downside: some code duplication, but I don't see a way to avoid it.
 template<typename T>
 class ArrayView1D<Host, T> {
  public:
@@ -310,14 +313,16 @@ class ArrayView1D<Host, T> {
   HOST_DEVICE_DECORATORS
   T* data_for_legacy_use() const { return _data; }
 
+  // Clonable
+  template<typename WhereTo>
+  Array1D<WhereTo, T> clone_to() const;
+
  private:
   std::size_t _s0;
   T* _data;
 
   friend class Array1D<Host, T>;
 };
-
-#ifdef __NVCC__
 
 template<typename T>
 class ArrayView1D<Device, T> {
@@ -345,14 +350,20 @@ class ArrayView1D<Device, T> {
   HOST_DEVICE_DECORATORS
   std::size_t s0() const { return _s0; }
 
-  DEVICE_DECORATOR
+#ifdef __NVCC__
+  __device__
   T& operator[](unsigned i0) const {
     assert(i0 < _s0);
     return *(_data + i0);
   }
+#endif
 
   HOST_DEVICE_DECORATORS
   T* data_for_legacy_use() const { return _data; }
+
+  // Clonable
+  template<typename WhereTo>
+  Array1D<WhereTo, T> clone_to() const;
 
  private:
   std::size_t _s0;
@@ -361,21 +372,87 @@ class ArrayView1D<Device, T> {
   friend class Array1D<Device, T>;
 };
 
-#endif
+
+// BEGIN GENERATED SECTION: arrays-and-array-views
+
+template<typename WhereFrom, typename WhereTo, typename T>
+void copy(ArrayView1D<WhereFrom, T> src, ArrayView1D<WhereTo, T> dst) {
+  assert(dst.s0() == src.s0());
+
+  From<WhereFrom>::template To<WhereTo>::template copy(
+    src.s0(), src.data_for_legacy_use(), dst.data_for_legacy_use());
+}
+
+template<typename Where, typename T>
+class Array1D : public ArrayView1D<Where, T> {
+ public:
+  // RAII
+  Array1D(std::size_t s0, Uninitialized) :
+    ArrayView1D<Where, T>(s0, Where::template alloc<T>(s0))
+  {}
+  Array1D(std::size_t s0, Zeroed) :
+    ArrayView1D<Where, T>(s0, Where::template alloc_zeroed<T>(s0))
+  {}
+  ~Array1D() {
+    free();
+  }
+
+  // Not copyable
+  Array1D(const Array1D&) = delete;
+  Array1D& operator=(const Array1D&) = delete;
+
+  // But movable
+  Array1D(Array1D&& o) : ArrayView1D<Where, T>(o) {
+    o._s0 = 0;
+    o._data = nullptr;
+  }
+  Array1D& operator=(Array1D&& o) {
+    free();
+    static_cast<ArrayView1D<Where, T>&>(*this) = o;
+    o._s0 = 0;
+    o._data = nullptr;
+    return *this;
+  }
+
+ private:
+  void free() {
+    Where::free(this->_data);
+  }
+};
+
+template<typename T>
+template<typename WhereTo>
+Array1D<WhereTo, T> ArrayView1D<Host, T>::clone_to() const {
+  Array1D<WhereTo, T> dst(this->s0(), uninitialized);
+  copy(*this, dst);  // NOLINT(build/include_what_you_use)
+  return dst;
+}
+
+template<typename T>
+template<typename WhereTo>
+Array1D<WhereTo, T> ArrayView1D<Device, T>::clone_to() const {
+  Array1D<WhereTo, T> dst(this->s0(), uninitialized);
+  copy(*this, dst);  // NOLINT(build/include_what_you_use)
+  return dst;
+}
+
+template<typename Where, typename T> class Array2D;
 
 template<typename Where, typename T>
 class ArrayView2D {
  public:
   // Constructor
   HOST_DEVICE_DECORATORS
-  ArrayView2D(std::size_t s1, std::size_t s0, T* data) : _s1(s1), _s0(s0), _data(data) {}
+  ArrayView2D(std::size_t s1, std::size_t s0, T* data) :
+    _s1(s1), _s0(s0), _data(data) {}
 
   // No need for custom copy and move constructors and operators (cf. "Rule Of Zero" above)
 
   // Generalized copy constructor and operator
   template<typename U>
   HOST_DEVICE_DECORATORS
-  ArrayView2D(const ArrayView2D<Where, U>& o) : _s1(o.s1()), _s0(o.s0()), _data(o.data_for_legacy_use()) {}
+  ArrayView2D(const ArrayView2D<Where, U>& o) :
+    _s1(o.s1()), _s0(o.s0()), _data(o.data_for_legacy_use()) {}
 
   template<typename U>
   HOST_DEVICE_DECORATORS
@@ -389,7 +466,6 @@ class ArrayView2D {
   // Accessors
   HOST_DEVICE_DECORATORS
   std::size_t s1() const { return _s1; }
-
   HOST_DEVICE_DECORATORS
   std::size_t s0() const { return _s0; }
 
@@ -400,11 +476,13 @@ class ArrayView2D {
   }
 
   HOST_DEVICE_DECORATORS
-  T* data_for_legacy_use() const { return _data; }
+  const T* data_for_legacy_use() const { return _data; }
+  HOST_DEVICE_DECORATORS
+  T* data_for_legacy_use() { return _data; }
 
   // Clonable
   template<typename WhereTo>
-  Array2D<WhereTo, T> clone_to();
+  Array2D<WhereTo, T> clone_to() const;
 
  private:
   std::size_t _s1;
@@ -414,189 +492,6 @@ class ArrayView2D {
   friend class Array2D<Where, T>;
 };
 
-template<typename Where, typename T>
-class ArrayView3D {
- public:
-  // Constructor
-  HOST_DEVICE_DECORATORS
-  ArrayView3D(std::size_t s2, std::size_t s1, std::size_t s0, T* data) : _s2(s2), _s1(s1), _s0(s0), _data(data) {}
-
-  // No need for custom copy and move constructors and operators (cf. "Rule Of Zero" above)
-
-  // Generalized copy constructor and operator
-  template<typename U>
-  HOST_DEVICE_DECORATORS
-  ArrayView3D(const ArrayView3D<Where, U>& o) : _s2(o.s2()), _s1(o.s1()), _s0(o.s0()), _data(o.data_for_legacy_use()) {}
-
-  template<typename U>
-  HOST_DEVICE_DECORATORS
-  ArrayView3D& operator=(const ArrayView3D<Where, U>& o) {
-    _s2 = o.s2();
-    _s1 = o.s1();
-    _s0 = o.s0();
-    _data = o.data_for_legacy_use();
-    return *this;
-  }
-
-  // Accessors
-  HOST_DEVICE_DECORATORS
-  std::size_t s2() const { return _s2; }
-
-  HOST_DEVICE_DECORATORS
-  std::size_t s1() const { return _s1; }
-
-  HOST_DEVICE_DECORATORS
-  std::size_t s0() const { return _s0; }
-
-  HOST_DEVICE_DECORATORS
-  ArrayView2D<Where, T> operator[](unsigned i2) const {
-    assert(i2 < _s2);
-    return ArrayView2D<Where, T>(_s1, _s0, _data + i2 * _s1);
-  }
-
-  HOST_DEVICE_DECORATORS
-  T* data_for_legacy_use() const { return _data; }
-
- private:
-  std::size_t _s2;
-  std::size_t _s1;
-  std::size_t _s0;
-  T* _data;
-
-  friend class Array3D<Where, T>;
-};
-
-template<typename Where, typename T>
-class ArrayView4D {
- public:
-  // Constructor
-  HOST_DEVICE_DECORATORS
-  ArrayView4D(std::size_t s3, std::size_t s2, std::size_t s1, std::size_t s0, T* data) :
-    _s3(s3), _s2(s2), _s1(s1), _s0(s0), _data(data) {}
-
-  // No need for custom copy and move constructors and operators (cf. "Rule Of Zero" above)
-
-  // Generalized copy constructor and operator
-  template<typename U>
-  HOST_DEVICE_DECORATORS
-  ArrayView4D(const ArrayView4D<Where, U>& o) :
-    _s3(o.s3()), _s2(o.s2()), _s1(o.s1()), _s0(o.s0()), _data(o.data_for_legacy_use()) {}
-
-  template<typename U>
-  HOST_DEVICE_DECORATORS
-  ArrayView4D& operator=(const ArrayView4D<Where, U>& o) {
-    _s3 = o.s3();
-    _s2 = o.s2();
-    _s1 = o.s1();
-    _s0 = o.s0();
-    _data = o.data_for_legacy_use();
-    return *this;
-  }
-
-  // Accessors
-  HOST_DEVICE_DECORATORS
-  std::size_t s3() const { return _s3; }
-
-  HOST_DEVICE_DECORATORS
-  std::size_t s2() const { return _s2; }
-
-  HOST_DEVICE_DECORATORS
-  std::size_t s1() const { return _s1; }
-
-  HOST_DEVICE_DECORATORS
-  std::size_t s0() const { return _s0; }
-
-  HOST_DEVICE_DECORATORS
-  ArrayView3D<Where, T> operator[](unsigned i3) const {
-    assert(i3 < _s3);
-    return ArrayView3D<Where, T>(_s2, _s1, _s0, _data + i3 * _s2);
-  }
-
-  HOST_DEVICE_DECORATORS
-  T* data_for_legacy_use() const { return _data; }
-
- private:
-  std::size_t _s3;
-  std::size_t _s2;
-  std::size_t _s1;
-  std::size_t _s0;
-  T* _data;
-
-  friend class Array4D<Where, T>;
-};
-
-template<typename Where, typename T>
-class ArrayView5D {
- public:
-  // Constructor
-  HOST_DEVICE_DECORATORS
-  ArrayView5D(std::size_t s4, std::size_t s3, std::size_t s2, std::size_t s1, std::size_t s0, T* data) :
-    _s4(s4), _s3(s3), _s2(s2), _s1(s1), _s0(s0), _data(data) {}
-
-  // No need for custom copy and move constructors and operators (cf. "Rule Of Zero" above)
-
-  // Generalized copy constructor and operator
-  template<typename U>
-  HOST_DEVICE_DECORATORS
-  ArrayView5D(const ArrayView5D<Where, U>& o) :
-    _s4(o.s4()), _s3(o.s3()), _s2(o.s2()), _s1(o.s1()), _s0(o.s0()), _data(o.data_for_legacy_use()) {}
-
-  template<typename U>
-  HOST_DEVICE_DECORATORS
-  ArrayView5D& operator=(const ArrayView5D<Where, U>& o) {
-    _s4 = o.s4();
-    _s3 = o.s3();
-    _s2 = o.s2();
-    _s1 = o.s1();
-    _s0 = o.s0();
-    _data = o.data_for_legacy_use();
-    return *this;
-  }
-
-  // Accessors
-  HOST_DEVICE_DECORATORS
-  std::size_t s4() const { return _s4; }
-
-  HOST_DEVICE_DECORATORS
-  std::size_t s3() const { return _s3; }
-
-  HOST_DEVICE_DECORATORS
-  std::size_t s2() const { return _s2; }
-
-  HOST_DEVICE_DECORATORS
-  std::size_t s1() const { return _s1; }
-
-  HOST_DEVICE_DECORATORS
-  std::size_t s0() const { return _s0; }
-
-  HOST_DEVICE_DECORATORS
-  ArrayView4D<Where, T> operator[](unsigned i4) const {
-    assert(i4 < _s4);
-    return ArrayView4D<Where, T>(_s3, _s2, _s1, _s0, _data + i4 * _s3);
-  }
-
-  HOST_DEVICE_DECORATORS
-  T* data_for_legacy_use() const { return _data; }
-
- private:
-  std::size_t _s4;
-  std::size_t _s3;
-  std::size_t _s2;
-  std::size_t _s1;
-  std::size_t _s0;
-  T* _data;
-
-  friend class Array5D<Where, T>;
-};
-
-template<typename WhereFrom, typename WhereTo, typename T>
-void copy(ArrayView1D<WhereFrom, T> src, ArrayView1D<WhereTo, T> dst) {
-  assert(dst.s0() == src.s0());
-
-  From<WhereFrom>::template To<WhereTo>::template copy(
-    src.s0(), src.data_for_legacy_use(), dst.data_for_legacy_use());
-}
-
 template<typename WhereFrom, typename WhereTo, typename T>
 void copy(ArrayView2D<WhereFrom, T> src, ArrayView2D<WhereTo, T> dst) {
   assert(dst.s1() == src.s1());
@@ -605,97 +500,6 @@ void copy(ArrayView2D<WhereFrom, T> src, ArrayView2D<WhereTo, T> dst) {
   From<WhereFrom>::template To<WhereTo>::template copy(
     src.s1() * src.s0(), src.data_for_legacy_use(), dst.data_for_legacy_use());
 }
-
-template<typename WhereFrom, typename WhereTo, typename T>
-void copy(ArrayView3D<WhereFrom, T> src, ArrayView3D<WhereTo, T> dst) {
-  assert(dst.s2() == src.s2());
-  assert(dst.s1() == src.s1());
-  assert(dst.s0() == src.s0());
-
-  From<WhereFrom>::template To<WhereTo>::template copy(
-    src.s2() * src.s1() * src.s0(), src.data_for_legacy_use(), dst.data_for_legacy_use());
-}
-
-template<typename WhereFrom, typename WhereTo, typename T>
-void copy(ArrayView4D<WhereFrom, T> src, ArrayView4D<WhereTo, T> dst) {
-  assert(dst.s3() == src.s3());
-  assert(dst.s2() == src.s2());
-  assert(dst.s1() == src.s1());
-  assert(dst.s0() == src.s0());
-
-  From<WhereFrom>::template To<WhereTo>::template copy(
-    src.s3() * src.s2() * src.s1() * src.s0(), src.data_for_legacy_use(), dst.data_for_legacy_use());
-}
-
-template<typename WhereFrom, typename WhereTo, typename T>
-void copy(ArrayView5D<WhereFrom, T> src, ArrayView5D<WhereTo, T> dst) {
-  assert(dst.s4() == src.s4());
-  assert(dst.s3() == src.s3());
-  assert(dst.s2() == src.s2());
-  assert(dst.s1() == src.s1());
-  assert(dst.s0() == src.s0());
-
-  From<WhereFrom>::template To<WhereTo>::template copy(
-    src.s4() * src.s3() * src.s2() * src.s1() * src.s0(), src.data_for_legacy_use(), dst.data_for_legacy_use());
-}
-
-/*        *
- * Arrays *
- *        */
-
-// Constructor parameters
-enum Zeroed {zeroed};
-enum Uninitialized {uninitialized};
-
-// These classes have "owning pointer" semantics, so they follow the
-// [Rule of Five](http://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Rc-five)
-
-template<typename Where, typename T>
-class Array1D : public ArrayView1D<Where, T> {
- public:
-  // RAII
-  explicit Array1D(std::size_t s0, Uninitialized) :
-    ArrayView1D<Where, T>(s0, Where::template alloc<T>(s0))
-  {}
-  explicit Array1D(std::size_t s0, Zeroed) :
-    ArrayView1D<Where, T>(s0, Where::template alloc_zeroed<T>(s0))
-  {}
-  ~Array1D() {
-    free();
-  }
-
-  // Not copyable (because we don't want to implicitly copy the underlying memory)
-  Array1D(const Array1D&) = delete;
-  Array1D& operator=(const Array1D&) = delete;
-
-  // But movable
-  Array1D(Array1D&& o) : ArrayView1D<Where, T>(o) {
-    // (we don't use std::exchange to stay compatible with C++11)
-    o._s0 = 0;
-    o._data = nullptr;
-  }
-  Array1D& operator=(Array1D&& o) {
-    free();
-    static_cast<ArrayView1D<Where, T>&>(*this) = o;
-    o._s0 = 0;
-    o._data = nullptr;
-    return *this;
-  }
-
-  // And clonable
-  // @todo Make ArrayView?D clonable
-  template<typename WhereTo>
-  Array1D<WhereTo, T> clone_to() {
-    Array1D<WhereTo, T> dst(this->s0(), uninitialized);
-    copy(*this, dst);  // NOLINT(build/include_what_you_use)
-    return dst;
-  }
-
- private:
-  void free() {
-    Where::free(this->_data);
-  }
-};
 
 template<typename Where, typename T>
 class Array2D : public ArrayView2D<Where, T> {
@@ -738,15 +542,391 @@ class Array2D : public ArrayView2D<Where, T> {
 
 template<typename WhereFrom, typename T>
 template<typename WhereTo>
-Array2D<WhereTo, T> ArrayView2D<WhereFrom, T>::clone_to() {
+Array2D<WhereTo, T> ArrayView2D<WhereFrom, T>::clone_to() const {
   Array2D<WhereTo, T> dst(this->s1(), this->s0(), uninitialized);
-  // printf("clone_to before copy: src=%i -> dst=%i\n", (*this)[0][0], dst[0][0]);
   copy(*this, dst);  // NOLINT(build/include_what_you_use)
-  // printf("clone_to after copy: src=%i -> dst=%i\n", (*this)[0][0], dst[0][0]);
   return dst;
 }
 
-// @todo Support dimensions up to 5
+template<typename Where, typename T> class Array3D;
+
+template<typename Where, typename T>
+class ArrayView3D {
+ public:
+  // Constructor
+  HOST_DEVICE_DECORATORS
+  ArrayView3D(std::size_t s2, std::size_t s1, std::size_t s0, T* data) :
+    _s2(s2), _s1(s1), _s0(s0), _data(data) {}
+
+  // No need for custom copy and move constructors and operators (cf. "Rule Of Zero" above)
+
+  // Generalized copy constructor and operator
+  template<typename U>
+  HOST_DEVICE_DECORATORS
+  ArrayView3D(const ArrayView3D<Where, U>& o) :
+    _s2(o.s2()), _s1(o.s1()), _s0(o.s0()), _data(o.data_for_legacy_use()) {}
+
+  template<typename U>
+  HOST_DEVICE_DECORATORS
+  ArrayView3D& operator=(const ArrayView3D<Where, U>& o) {
+    _s2 = o.s2();
+    _s1 = o.s1();
+    _s0 = o.s0();
+    _data = o.data_for_legacy_use();
+    return *this;
+  }
+
+  // Accessors
+  HOST_DEVICE_DECORATORS
+  std::size_t s2() const { return _s2; }
+  HOST_DEVICE_DECORATORS
+  std::size_t s1() const { return _s1; }
+  HOST_DEVICE_DECORATORS
+  std::size_t s0() const { return _s0; }
+
+  HOST_DEVICE_DECORATORS
+  ArrayView2D<Where, T> operator[](unsigned i2) const {
+    assert(i2 < _s2);
+    return ArrayView2D<Where, T>(_s1, _s0, _data + i2 * _s1 * _s0);
+  }
+
+  HOST_DEVICE_DECORATORS
+  const T* data_for_legacy_use() const { return _data; }
+  HOST_DEVICE_DECORATORS
+  T* data_for_legacy_use() { return _data; }
+
+  // Clonable
+  template<typename WhereTo>
+  Array3D<WhereTo, T> clone_to() const;
+
+ private:
+  std::size_t _s2;
+  std::size_t _s1;
+  std::size_t _s0;
+  T* _data;
+
+  friend class Array3D<Where, T>;
+};
+
+template<typename WhereFrom, typename WhereTo, typename T>
+void copy(ArrayView3D<WhereFrom, T> src, ArrayView3D<WhereTo, T> dst) {
+  assert(dst.s2() == src.s2());
+  assert(dst.s1() == src.s1());
+  assert(dst.s0() == src.s0());
+
+  From<WhereFrom>::template To<WhereTo>::template copy(
+    src.s2() * src.s1() * src.s0(), src.data_for_legacy_use(), dst.data_for_legacy_use());
+}
+
+template<typename Where, typename T>
+class Array3D : public ArrayView3D<Where, T> {
+ public:
+  // RAII
+  Array3D(std::size_t s2, std::size_t s1, std::size_t s0, Uninitialized) :
+    ArrayView3D<Where, T>(s2, s1, s0, Where::template alloc<T>(s2 * s1 * s0))
+  {}
+  Array3D(std::size_t s2, std::size_t s1, std::size_t s0, Zeroed) :
+    ArrayView3D<Where, T>(s2, s1, s0, Where::template alloc_zeroed<T>(s2 * s1 * s0))
+  {}
+  ~Array3D() {
+    free();
+  }
+
+  // Not copyable
+  Array3D(const Array3D&) = delete;
+  Array3D& operator=(const Array3D&) = delete;
+
+  // But movable
+  Array3D(Array3D&& o) : ArrayView3D<Where, T>(o) {
+    o._s2 = 0;
+    o._s1 = 0;
+    o._s0 = 0;
+    o._data = nullptr;
+  }
+  Array3D& operator=(Array3D&& o) {
+    free();
+    static_cast<ArrayView3D<Where, T>&>(*this) = o;
+    o._s2 = 0;
+    o._s1 = 0;
+    o._s0 = 0;
+    o._data = nullptr;
+    return *this;
+  }
+
+ private:
+  void free() {
+    Where::free(this->_data);
+  }
+};
+
+template<typename WhereFrom, typename T>
+template<typename WhereTo>
+Array3D<WhereTo, T> ArrayView3D<WhereFrom, T>::clone_to() const {
+  Array3D<WhereTo, T> dst(this->s2(), this->s1(), this->s0(), uninitialized);
+  copy(*this, dst);  // NOLINT(build/include_what_you_use)
+  return dst;
+}
+
+template<typename Where, typename T> class Array4D;
+
+template<typename Where, typename T>
+class ArrayView4D {
+ public:
+  // Constructor
+  HOST_DEVICE_DECORATORS
+  ArrayView4D(std::size_t s3, std::size_t s2, std::size_t s1, std::size_t s0, T* data) :
+    _s3(s3), _s2(s2), _s1(s1), _s0(s0), _data(data) {}
+
+  // No need for custom copy and move constructors and operators (cf. "Rule Of Zero" above)
+
+  // Generalized copy constructor and operator
+  template<typename U>
+  HOST_DEVICE_DECORATORS
+  ArrayView4D(const ArrayView4D<Where, U>& o) :
+    _s3(o.s3()), _s2(o.s2()), _s1(o.s1()), _s0(o.s0()), _data(o.data_for_legacy_use()) {}
+
+  template<typename U>
+  HOST_DEVICE_DECORATORS
+  ArrayView4D& operator=(const ArrayView4D<Where, U>& o) {
+    _s3 = o.s3();
+    _s2 = o.s2();
+    _s1 = o.s1();
+    _s0 = o.s0();
+    _data = o.data_for_legacy_use();
+    return *this;
+  }
+
+  // Accessors
+  HOST_DEVICE_DECORATORS
+  std::size_t s3() const { return _s3; }
+  HOST_DEVICE_DECORATORS
+  std::size_t s2() const { return _s2; }
+  HOST_DEVICE_DECORATORS
+  std::size_t s1() const { return _s1; }
+  HOST_DEVICE_DECORATORS
+  std::size_t s0() const { return _s0; }
+
+  HOST_DEVICE_DECORATORS
+  ArrayView3D<Where, T> operator[](unsigned i3) const {
+    assert(i3 < _s3);
+    return ArrayView3D<Where, T>(_s2, _s1, _s0, _data + i3 * _s2 * _s1 * _s0);
+  }
+
+  HOST_DEVICE_DECORATORS
+  const T* data_for_legacy_use() const { return _data; }
+  HOST_DEVICE_DECORATORS
+  T* data_for_legacy_use() { return _data; }
+
+  // Clonable
+  template<typename WhereTo>
+  Array4D<WhereTo, T> clone_to() const;
+
+ private:
+  std::size_t _s3;
+  std::size_t _s2;
+  std::size_t _s1;
+  std::size_t _s0;
+  T* _data;
+
+  friend class Array4D<Where, T>;
+};
+
+template<typename WhereFrom, typename WhereTo, typename T>
+void copy(ArrayView4D<WhereFrom, T> src, ArrayView4D<WhereTo, T> dst) {
+  assert(dst.s3() == src.s3());
+  assert(dst.s2() == src.s2());
+  assert(dst.s1() == src.s1());
+  assert(dst.s0() == src.s0());
+
+  From<WhereFrom>::template To<WhereTo>::template copy(
+    src.s3() * src.s2() * src.s1() * src.s0(), src.data_for_legacy_use(), dst.data_for_legacy_use());
+}
+
+template<typename Where, typename T>
+class Array4D : public ArrayView4D<Where, T> {
+ public:
+  // RAII
+  Array4D(std::size_t s3, std::size_t s2, std::size_t s1, std::size_t s0, Uninitialized) :
+    ArrayView4D<Where, T>(s3, s2, s1, s0, Where::template alloc<T>(s3 * s2 * s1 * s0))
+  {}
+  Array4D(std::size_t s3, std::size_t s2, std::size_t s1, std::size_t s0, Zeroed) :
+    ArrayView4D<Where, T>(s3, s2, s1, s0, Where::template alloc_zeroed<T>(s3 * s2 * s1 * s0))
+  {}
+  ~Array4D() {
+    free();
+  }
+
+  // Not copyable
+  Array4D(const Array4D&) = delete;
+  Array4D& operator=(const Array4D&) = delete;
+
+  // But movable
+  Array4D(Array4D&& o) : ArrayView4D<Where, T>(o) {
+    o._s3 = 0;
+    o._s2 = 0;
+    o._s1 = 0;
+    o._s0 = 0;
+    o._data = nullptr;
+  }
+  Array4D& operator=(Array4D&& o) {
+    free();
+    static_cast<ArrayView4D<Where, T>&>(*this) = o;
+    o._s3 = 0;
+    o._s2 = 0;
+    o._s1 = 0;
+    o._s0 = 0;
+    o._data = nullptr;
+    return *this;
+  }
+
+ private:
+  void free() {
+    Where::free(this->_data);
+  }
+};
+
+template<typename WhereFrom, typename T>
+template<typename WhereTo>
+Array4D<WhereTo, T> ArrayView4D<WhereFrom, T>::clone_to() const {
+  Array4D<WhereTo, T> dst(this->s3(), this->s2(), this->s1(), this->s0(), uninitialized);
+  copy(*this, dst);  // NOLINT(build/include_what_you_use)
+  return dst;
+}
+
+template<typename Where, typename T> class Array5D;
+
+template<typename Where, typename T>
+class ArrayView5D {
+ public:
+  // Constructor
+  HOST_DEVICE_DECORATORS
+  ArrayView5D(std::size_t s4, std::size_t s3, std::size_t s2, std::size_t s1, std::size_t s0, T* data) :
+    _s4(s4), _s3(s3), _s2(s2), _s1(s1), _s0(s0), _data(data) {}
+
+  // No need for custom copy and move constructors and operators (cf. "Rule Of Zero" above)
+
+  // Generalized copy constructor and operator
+  template<typename U>
+  HOST_DEVICE_DECORATORS
+  ArrayView5D(const ArrayView5D<Where, U>& o) :
+    _s4(o.s4()), _s3(o.s3()), _s2(o.s2()), _s1(o.s1()), _s0(o.s0()), _data(o.data_for_legacy_use()) {}
+
+  template<typename U>
+  HOST_DEVICE_DECORATORS
+  ArrayView5D& operator=(const ArrayView5D<Where, U>& o) {
+    _s4 = o.s4();
+    _s3 = o.s3();
+    _s2 = o.s2();
+    _s1 = o.s1();
+    _s0 = o.s0();
+    _data = o.data_for_legacy_use();
+    return *this;
+  }
+
+  // Accessors
+  HOST_DEVICE_DECORATORS
+  std::size_t s4() const { return _s4; }
+  HOST_DEVICE_DECORATORS
+  std::size_t s3() const { return _s3; }
+  HOST_DEVICE_DECORATORS
+  std::size_t s2() const { return _s2; }
+  HOST_DEVICE_DECORATORS
+  std::size_t s1() const { return _s1; }
+  HOST_DEVICE_DECORATORS
+  std::size_t s0() const { return _s0; }
+
+  HOST_DEVICE_DECORATORS
+  ArrayView4D<Where, T> operator[](unsigned i4) const {
+    assert(i4 < _s4);
+    return ArrayView4D<Where, T>(_s3, _s2, _s1, _s0, _data + i4 * _s3 * _s2 * _s1 * _s0);
+  }
+
+  HOST_DEVICE_DECORATORS
+  const T* data_for_legacy_use() const { return _data; }
+  HOST_DEVICE_DECORATORS
+  T* data_for_legacy_use() { return _data; }
+
+  // Clonable
+  template<typename WhereTo>
+  Array5D<WhereTo, T> clone_to() const;
+
+ private:
+  std::size_t _s4;
+  std::size_t _s3;
+  std::size_t _s2;
+  std::size_t _s1;
+  std::size_t _s0;
+  T* _data;
+
+  friend class Array5D<Where, T>;
+};
+
+template<typename WhereFrom, typename WhereTo, typename T>
+void copy(ArrayView5D<WhereFrom, T> src, ArrayView5D<WhereTo, T> dst) {
+  assert(dst.s4() == src.s4());
+  assert(dst.s3() == src.s3());
+  assert(dst.s2() == src.s2());
+  assert(dst.s1() == src.s1());
+  assert(dst.s0() == src.s0());
+
+  From<WhereFrom>::template To<WhereTo>::template copy(
+    src.s4() * src.s3() * src.s2() * src.s1() * src.s0(), src.data_for_legacy_use(), dst.data_for_legacy_use());
+}
+
+template<typename Where, typename T>
+class Array5D : public ArrayView5D<Where, T> {
+ public:
+  // RAII
+  Array5D(std::size_t s4, std::size_t s3, std::size_t s2, std::size_t s1, std::size_t s0, Uninitialized) :
+    ArrayView5D<Where, T>(s4, s3, s2, s1, s0, Where::template alloc<T>(s4 * s3 * s2 * s1 * s0))
+  {}
+  Array5D(std::size_t s4, std::size_t s3, std::size_t s2, std::size_t s1, std::size_t s0, Zeroed) :
+    ArrayView5D<Where, T>(s4, s3, s2, s1, s0, Where::template alloc_zeroed<T>(s4 * s3 * s2 * s1 * s0))
+  {}
+  ~Array5D() {
+    free();
+  }
+
+  // Not copyable
+  Array5D(const Array5D&) = delete;
+  Array5D& operator=(const Array5D&) = delete;
+
+  // But movable
+  Array5D(Array5D&& o) : ArrayView5D<Where, T>(o) {
+    o._s4 = 0;
+    o._s3 = 0;
+    o._s2 = 0;
+    o._s1 = 0;
+    o._s0 = 0;
+    o._data = nullptr;
+  }
+  Array5D& operator=(Array5D&& o) {
+    free();
+    static_cast<ArrayView5D<Where, T>&>(*this) = o;
+    o._s4 = 0;
+    o._s3 = 0;
+    o._s2 = 0;
+    o._s1 = 0;
+    o._s0 = 0;
+    o._data = nullptr;
+    return *this;
+  }
+
+ private:
+  void free() {
+    Where::free(this->_data);
+  }
+};
+
+template<typename WhereFrom, typename T>
+template<typename WhereTo>
+Array5D<WhereTo, T> ArrayView5D<WhereFrom, T>::clone_to() const {
+  Array5D<WhereTo, T> dst(this->s4(), this->s3(), this->s2(), this->s1(), this->s0(), uninitialized);
+  copy(*this, dst);  // NOLINT(build/include_what_you_use)
+  return dst;
+}
+
+// END GENERATED SECTION: arrays-and-array-views
 
 
 /*                          *
@@ -861,8 +1041,5 @@ struct GridFactory3D {
   }
 #endif  // __NVCC__
 };
-
-#undef HOST_DEVICE_DECORATORS
-#undef DEVICE_DECORATOR
 
 #endif  // LOV_E_HPP_
