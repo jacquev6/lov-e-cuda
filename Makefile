@@ -154,14 +154,14 @@ build/debug/%.plain.ok: build/debug/%
 # Run with Valgrind's memcheck
 # Notes that Valgrind and CUDA aren't very friendly to each other, so a pretty brutal suppression file is used
 # to hide false positives. Sadly it may well hide true positives as well. But this is better than nothing.
-build/debug/%.valgrind-memcheck.ok: build/debug/%
+build/debug/%.valgrind-memcheck.ok: build/debug/% build/debug/%.plain.ok
 	@echo "valgrind $<"
 	@mkdir -p $(patsubst %.ok,%.wd,$@)
 	@(cd $(patsubst %.ok,%.wd,$@); valgrind --tool=memcheck --verbose --leak-check=full --show-leak-kinds=definite,indirect,possible --errors-for-leak-kinds=definite,indirect,possible --error-exitcode=1 --gen-suppressions=all --suppressions=$(root_directory)/builder/valgrind-cuda.supp $(root_directory)/$<) 2>&1 | tee $(patsubst %.ok,%.log,$@)
 	@touch $@
 
 # Run with NVidia's 'cuda-memcheck'
-build/debug/%.cuda-memcheck.ok: build/debug/%
+build/debug/%.cuda-memcheck.ok: build/debug/% build/debug/%.plain.ok
 	@echo "cuda-memcheck $<"
 	@mkdir -p $(patsubst %.ok,%.wd,$@)
 	@(cd $(patsubst %.ok,%.wd,$@); cuda-memcheck --tool memcheck --leak-check full --error-exitcode 1 $(root_directory)/$<) 2>&1 | tee $(patsubst %.ok,%.log,$@)
