@@ -281,7 +281,7 @@ class ArrayView1D<Host, T> {
  public:
   // Constructor
   HOST_DEVICE_DECORATORS
-  ArrayView1D(unsigned s0, T* data) : _s0(s0), _data(data) {}
+  ArrayView1D(std::size_t s0, T* data) : _s0(s0), _data(data) {}
 
   // No need for custom copy and move constructors and operators (cf. "Rule Of Zero" above)
 
@@ -300,7 +300,7 @@ class ArrayView1D<Host, T> {
 
   // Accessors
   HOST_DEVICE_DECORATORS
-  unsigned s0() const { return _s0; }
+  std::size_t s0() const { return _s0; }
 
   T& operator[](unsigned i0) const {
     assert(i0 < _s0);
@@ -311,7 +311,7 @@ class ArrayView1D<Host, T> {
   T* data_for_legacy_use() const { return _data; }
 
  private:
-  unsigned _s0;
+  std::size_t _s0;
   T* _data;
 
   friend class Array1D<Host, T>;
@@ -324,7 +324,7 @@ class ArrayView1D<Device, T> {
  public:
   // Constructor
   HOST_DEVICE_DECORATORS
-  ArrayView1D(unsigned s0, T* data) : _s0(s0), _data(data) {}
+  ArrayView1D(std::size_t s0, T* data) : _s0(s0), _data(data) {}
 
   // No need for custom copy and move constructors and operators (cf. "Rule Of Zero" above)
 
@@ -343,7 +343,7 @@ class ArrayView1D<Device, T> {
 
   // Accessors
   HOST_DEVICE_DECORATORS
-  unsigned s0() const { return _s0; }
+  std::size_t s0() const { return _s0; }
 
   DEVICE_DECORATOR
   T& operator[](unsigned i0) const {
@@ -355,7 +355,7 @@ class ArrayView1D<Device, T> {
   T* data_for_legacy_use() const { return _data; }
 
  private:
-  unsigned _s0;
+  std::size_t _s0;
   T* _data;
 
   friend class Array1D<Device, T>;
@@ -368,7 +368,7 @@ class ArrayView2D {
  public:
   // Constructor
   HOST_DEVICE_DECORATORS
-  ArrayView2D(unsigned s1, unsigned s0, T* data) : _s1(s1), _s0(s0), _data(data) {}
+  ArrayView2D(std::size_t s1, std::size_t s0, T* data) : _s1(s1), _s0(s0), _data(data) {}
 
   // No need for custom copy and move constructors and operators (cf. "Rule Of Zero" above)
 
@@ -388,10 +388,10 @@ class ArrayView2D {
 
   // Accessors
   HOST_DEVICE_DECORATORS
-  unsigned s1() const { return _s1; }
+  std::size_t s1() const { return _s1; }
 
   HOST_DEVICE_DECORATORS
-  unsigned s0() const { return _s0; }
+  std::size_t s0() const { return _s0; }
 
   HOST_DEVICE_DECORATORS
   ArrayView1D<Where, T> operator[](unsigned i1) const {
@@ -403,8 +403,8 @@ class ArrayView2D {
   T* data_for_legacy_use() const { return _data; }
 
  private:
-  unsigned _s1;
-  unsigned _s0;
+  std::size_t _s1;
+  std::size_t _s0;
   T* _data;
 
   friend class Array2D<Where, T>;
@@ -415,7 +415,7 @@ class ArrayView3D {
  public:
   // Constructor
   HOST_DEVICE_DECORATORS
-  ArrayView3D(unsigned s2, unsigned s1, unsigned s0, T* data) : _s2(s2), _s1(s1), _s0(s0), _data(data) {}
+  ArrayView3D(std::size_t s2, std::size_t s1, std::size_t s0, T* data) : _s2(s2), _s1(s1), _s0(s0), _data(data) {}
 
   // No need for custom copy and move constructors and operators (cf. "Rule Of Zero" above)
 
@@ -436,13 +436,13 @@ class ArrayView3D {
 
   // Accessors
   HOST_DEVICE_DECORATORS
-  unsigned s2() const { return _s2; }
+  std::size_t s2() const { return _s2; }
 
   HOST_DEVICE_DECORATORS
-  unsigned s1() const { return _s1; }
+  std::size_t s1() const { return _s1; }
 
   HOST_DEVICE_DECORATORS
-  unsigned s0() const { return _s0; }
+  std::size_t s0() const { return _s0; }
 
   HOST_DEVICE_DECORATORS
   ArrayView2D<Where, T> operator[](unsigned i2) const {
@@ -454,9 +454,9 @@ class ArrayView3D {
   T* data_for_legacy_use() const { return _data; }
 
  private:
-  unsigned _s2;
-  unsigned _s1;
-  unsigned _s0;
+  std::size_t _s2;
+  std::size_t _s1;
+  std::size_t _s0;
   T* _data;
 
   friend class Array3D<Where, T>;
@@ -467,7 +467,7 @@ class ArrayView4D {
  public:
   // Constructor
   HOST_DEVICE_DECORATORS
-  ArrayView4D(unsigned s3, unsigned s2, unsigned s1, unsigned s0, T* data) :
+  ArrayView4D(std::size_t s3, std::size_t s2, std::size_t s1, std::size_t s0, T* data) :
     _s3(s3), _s2(s2), _s1(s1), _s0(s0), _data(data) {}
 
   // No need for custom copy and move constructors and operators (cf. "Rule Of Zero" above)
@@ -491,16 +491,16 @@ class ArrayView4D {
 
   // Accessors
   HOST_DEVICE_DECORATORS
-  unsigned s3() const { return _s3; }
+  std::size_t s3() const { return _s3; }
 
   HOST_DEVICE_DECORATORS
-  unsigned s2() const { return _s2; }
+  std::size_t s2() const { return _s2; }
 
   HOST_DEVICE_DECORATORS
-  unsigned s1() const { return _s1; }
+  std::size_t s1() const { return _s1; }
 
   HOST_DEVICE_DECORATORS
-  unsigned s0() const { return _s0; }
+  std::size_t s0() const { return _s0; }
 
   HOST_DEVICE_DECORATORS
   ArrayView3D<Where, T> operator[](unsigned i3) const {
@@ -512,10 +512,10 @@ class ArrayView4D {
   T* data_for_legacy_use() const { return _data; }
 
  private:
-  unsigned _s3;
-  unsigned _s2;
-  unsigned _s1;
-  unsigned _s0;
+  std::size_t _s3;
+  std::size_t _s2;
+  std::size_t _s1;
+  std::size_t _s0;
   T* _data;
 
   friend class Array4D<Where, T>;
@@ -526,7 +526,7 @@ class ArrayView5D {
  public:
   // Constructor
   HOST_DEVICE_DECORATORS
-  ArrayView5D(unsigned s4, unsigned s3, unsigned s2, unsigned s1, unsigned s0, T* data) :
+  ArrayView5D(std::size_t s4, std::size_t s3, std::size_t s2, std::size_t s1, std::size_t s0, T* data) :
     _s4(s4), _s3(s3), _s2(s2), _s1(s1), _s0(s0), _data(data) {}
 
   // No need for custom copy and move constructors and operators (cf. "Rule Of Zero" above)
@@ -551,19 +551,19 @@ class ArrayView5D {
 
   // Accessors
   HOST_DEVICE_DECORATORS
-  unsigned s4() const { return _s4; }
+  std::size_t s4() const { return _s4; }
 
   HOST_DEVICE_DECORATORS
-  unsigned s3() const { return _s3; }
+  std::size_t s3() const { return _s3; }
 
   HOST_DEVICE_DECORATORS
-  unsigned s2() const { return _s2; }
+  std::size_t s2() const { return _s2; }
 
   HOST_DEVICE_DECORATORS
-  unsigned s1() const { return _s1; }
+  std::size_t s1() const { return _s1; }
 
   HOST_DEVICE_DECORATORS
-  unsigned s0() const { return _s0; }
+  std::size_t s0() const { return _s0; }
 
   HOST_DEVICE_DECORATORS
   ArrayView4D<Where, T> operator[](unsigned i4) const {
@@ -575,11 +575,11 @@ class ArrayView5D {
   T* data_for_legacy_use() const { return _data; }
 
  private:
-  unsigned _s4;
-  unsigned _s3;
-  unsigned _s2;
-  unsigned _s1;
-  unsigned _s0;
+  std::size_t _s4;
+  std::size_t _s3;
+  std::size_t _s2;
+  std::size_t _s1;
+  std::size_t _s0;
   T* _data;
 
   friend class Array5D<Where, T>;
@@ -650,10 +650,10 @@ template<typename Where, typename T>
 class Array1D : public ArrayView1D<Where, T> {
  public:
   // RAII
-  explicit Array1D(unsigned s0, Uninitialized) :
+  explicit Array1D(std::size_t s0, Uninitialized) :
     ArrayView1D<Where, T>(s0, Where::template alloc<T>(s0))
   {}
-  explicit Array1D(unsigned s0, Zeroed) :
+  explicit Array1D(std::size_t s0, Zeroed) :
     ArrayView1D<Where, T>(s0, Where::template alloc_zeroed<T>(s0))
   {}
   ~Array1D() {
@@ -687,10 +687,10 @@ template<typename Where, typename T>
 class Array2D : public ArrayView2D<Where, T> {
  public:
   // RAII
-  Array2D(unsigned s1, unsigned s0, Uninitialized) :
+  Array2D(std::size_t s1, std::size_t s0, Uninitialized) :
     ArrayView2D<Where, T>(s1, s0, Where::template alloc<T>(s1 * s0))
   {}
-  Array2D(unsigned s1, unsigned s0, Zeroed) :
+  Array2D(std::size_t s1, std::size_t s0, Zeroed) :
     ArrayView2D<Where, T>(s1, s0, Where::template alloc_zeroed<T>(s1 * s0))
   {}
   ~Array2D() {
