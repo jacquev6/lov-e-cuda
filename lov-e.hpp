@@ -760,10 +760,39 @@ struct Grid {
 
 #define CONFIG(grid) grid.blocks, grid.threads
 
+template<unsigned BLOCKDIM_X>
+struct GridFactory1D {
+  HOST_DEVICE_DECORATORS
+  static Grid make(unsigned x) {
+    return Grid {
+      dim3(
+        (x + BLOCKDIM_X - 1) / BLOCKDIM_X,
+        1,
+        1),
+      dim3(BLOCKDIM_X, 1, 1),
+    };
+  }
+
+  HOST_DEVICE_DECORATORS
+  static Grid fixed(unsigned x) {
+    return Grid {
+      dim3(x, 1, 1),
+      dim3(BLOCKDIM_X, 1, 1),
+    };
+  }
+
+#ifdef __NVCC__
+  __device__ static unsigned x() {
+    assert(blockDim.x == BLOCKDIM_X);
+    return blockIdx.x * BLOCKDIM_X + threadIdx.x;
+  }
+#endif  // __NVCC__
+};
+
 template<unsigned BLOCKDIM_X, unsigned BLOCKDIM_Y>
 struct GridFactory2D {
   HOST_DEVICE_DECORATORS
-  static Grid make(int x, int y) {
+  static Grid make(unsigned x, unsigned y) {
     return Grid {
       dim3(
         (x + BLOCKDIM_X - 1) / BLOCKDIM_X,
@@ -774,7 +803,7 @@ struct GridFactory2D {
   }
 
   HOST_DEVICE_DECORATORS
-  static Grid fixed(int x, int y) {
+  static Grid fixed(unsigned x, unsigned y) {
     return Grid {
       dim3(x, y, 1),
       dim3(BLOCKDIM_X, BLOCKDIM_Y, 1),
@@ -790,6 +819,45 @@ struct GridFactory2D {
   __device__ static unsigned y() {
     assert(blockDim.y == BLOCKDIM_Y);
     return blockIdx.y * BLOCKDIM_Y + threadIdx.y;
+  }
+#endif  // __NVCC__
+};
+
+template<unsigned BLOCKDIM_X, unsigned BLOCKDIM_Y, unsigned BLOCKDIM_Z>
+struct GridFactory3D {
+  HOST_DEVICE_DECORATORS
+  static Grid make(unsigned x, unsigned y, unsigned z) {
+    return Grid {
+      dim3(
+        (x + BLOCKDIM_X - 1) / BLOCKDIM_X,
+        (y + BLOCKDIM_Y - 1) / BLOCKDIM_Y,
+        (z + BLOCKDIM_Z - 1) / BLOCKDIM_Z),
+      dim3(BLOCKDIM_X, BLOCKDIM_Y, BLOCKDIM_Z),
+    };
+  }
+
+  HOST_DEVICE_DECORATORS
+  static Grid fixed(unsigned x, unsigned y, unsigned z) {
+    return Grid {
+      dim3(x, y, z),
+      dim3(BLOCKDIM_X, BLOCKDIM_Y, BLOCKDIM_Z),
+    };
+  }
+
+#ifdef __NVCC__
+  __device__ static unsigned x() {
+    assert(blockDim.x == BLOCKDIM_X);
+    return blockIdx.x * BLOCKDIM_X + threadIdx.x;
+  }
+
+  __device__ static unsigned y() {
+    assert(blockDim.y == BLOCKDIM_Y);
+    return blockIdx.y * BLOCKDIM_Y + threadIdx.y;
+  }
+
+  __device__ static unsigned z() {
+    assert(blockDim.z == BLOCKDIM_Z);
+    return blockIdx.z * BLOCKDIM_Z + threadIdx.z;
   }
 #endif  // __NVCC__
 };
