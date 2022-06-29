@@ -108,7 +108,7 @@ TEST_F(ArrayView2DTest, AssignToConst) {
   #endif
 }
 
-TEST_F(ArrayView2DTest, Copy) {
+TEST_F(ArrayView2DTest, CopyToArrayView) {
   int other_memory[s1 * s0];  // NOLINT(runtime/arrays)
   ArrayView2D<Host, int> other_array(s1, s0, other_memory);
   other_array[0][0] = 42;
@@ -116,6 +116,23 @@ TEST_F(ArrayView2DTest, Copy) {
 
   copy(array, other_array);
 
+  EXPECT_EQ(other_array[0][0], 0);
+  EXPECT_EQ(other_array[3][2], 33);
+}
+
+TEST_F(ArrayView2DTest, CopyToArray) {
+  Array2D<Host, int> other_array(s1, s0, uninitialized);
+  other_array[0][0] = 42;
+  other_array[3][2] = 42;
+
+  copy(array, other_array);
+
+  EXPECT_EQ(other_array[0][0], 0);
+  EXPECT_EQ(other_array[3][2], 33);
+}
+
+TEST_F(ArrayView2DTest, Clone) {
+  Array2D<Host, int> other_array = array.clone_to<Host>();
   EXPECT_EQ(other_array[0][0], 0);
   EXPECT_EQ(other_array[3][2], 33);
 }

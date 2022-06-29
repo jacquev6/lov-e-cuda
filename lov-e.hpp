@@ -402,6 +402,10 @@ class ArrayView2D {
   HOST_DEVICE_DECORATORS
   T* data_for_legacy_use() const { return _data; }
 
+  // Clonable
+  template<typename WhereTo>
+  Array2D<WhereTo, T> clone_to();
+
  private:
   std::size_t _s1;
   std::size_t _s0;
@@ -657,7 +661,7 @@ class Array1D : public ArrayView1D<Where, T> {
     ArrayView1D<Where, T>(s0, Where::template alloc_zeroed<T>(s0))
   {}
   ~Array1D() {
-    Where::free(this->_data);
+    free();
   }
 
   // Not copyable (because we don't want to implicitly copy the underlying memory)
@@ -667,19 +671,29 @@ class Array1D : public ArrayView1D<Where, T> {
   // But movable
   Array1D(Array1D&& o) : ArrayView1D<Where, T>(o) {
     // (we don't use std::exchange to stay compatible with C++11)
+    o._s0 = 0;
     o._data = nullptr;
   }
   Array1D& operator=(Array1D&& o) {
+    free();
     static_cast<ArrayView1D<Where, T>&>(*this) = o;
+    o._s0 = 0;
     o._data = nullptr;
+    return *this;
   }
 
   // And clonable
+  // @todo Make ArrayView?D clonable
   template<typename WhereTo>
   Array1D<WhereTo, T> clone_to() {
     Array1D<WhereTo, T> dst(this->s0(), uninitialized);
     copy(*this, dst);  // NOLINT(build/include_what_you_use)
     return dst;
+  }
+
+ private:
+  void free() {
+    Where::free(this->_data);
   }
 };
 
@@ -694,7 +708,7 @@ class Array2D : public ArrayView2D<Where, T> {
     ArrayView2D<Where, T>(s1, s0, Where::template alloc_zeroed<T>(s1 * s0))
   {}
   ~Array2D() {
-    Where::free(this->_data);
+    free();
   }
 
   // Not copyable
@@ -703,21 +717,34 @@ class Array2D : public ArrayView2D<Where, T> {
 
   // But movable
   Array2D(Array2D&& o) : ArrayView2D<Where, T>(o) {
+    o._s1 = 0;
+    o._s0 = 0;
     o._data = nullptr;
   }
   Array2D& operator=(Array2D&& o) {
+    free();
     static_cast<ArrayView2D<Where, T>&>(*this) = o;
+    o._s1 = 0;
+    o._s0 = 0;
     o._data = nullptr;
+    return *this;
   }
 
-  // And clonable
-  template<typename WhereTo>
-  Array2D<WhereTo, T> clone_to() {
-    Array2D<WhereTo, T> dst(this->s1(), this->s0(), uninitialized);
-    copy(*this, dst);  // NOLINT(build/include_what_you_use)
-    return dst;
+ private:
+  void free() {
+    Where::free(this->_data);
   }
 };
+
+template<typename WhereFrom, typename T>
+template<typename WhereTo>
+Array2D<WhereTo, T> ArrayView2D<WhereFrom, T>::clone_to() {
+  Array2D<WhereTo, T> dst(this->s1(), this->s0(), uninitialized);
+  // printf("clone_to before copy: src=%i -> dst=%i\n", (*this)[0][0], dst[0][0]);
+  copy(*this, dst);  // NOLINT(build/include_what_you_use)
+  // printf("clone_to after copy: src=%i -> dst=%i\n", (*this)[0][0], dst[0][0]);
+  return dst;
+}
 
 // @todo Support dimensions up to 5
 
