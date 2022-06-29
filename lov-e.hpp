@@ -636,7 +636,7 @@ void copy(ArrayView5D<WhereFrom, T> src, ArrayView5D<WhereTo, T> dst) {
   assert(dst.s0() == src.s0());
 
   From<WhereFrom>::template To<WhereTo>::template copy(
-    src.s4() *  src.s3() * src.s2() * src.s1() * src.s0(), src.data_for_legacy_use(), dst.data_for_legacy_use());
+    src.s4() * src.s3() * src.s2() * src.s1() * src.s0(), src.data_for_legacy_use(), dst.data_for_legacy_use());
 }
 
 /*        *
