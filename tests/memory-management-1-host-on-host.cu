@@ -195,7 +195,9 @@ TEST_F(CopyOnHostTest, CopyDeviceToHost) {
   EXPECT_EQ(h1[count - 1], 65);
 }
 
-__global__ void kernel_CopyOnHostTest_CopyDeviceToDevice(const std::size_t count, uint16_t* const d1, uint16_t* const d2) {
+__global__ void kernel_CopyOnHostTest_CopyDeviceToDevice(
+  const std::size_t count, uint16_t* const d1, uint16_t* const d2
+) {
   // cudaMemcpy is __host__ only
   #if EXPECT_COMPILE_ERROR == __LINE__
     From<Device>::To<Device>::copy(count, d1, d2);
