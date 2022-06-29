@@ -11,10 +11,8 @@
 class ArrayView2DTest : public testing::Test {
  protected:
   ArrayView2DTest() : array(s1, s0, memory) {
-    for (unsigned i1 = 0; i1 != s1; ++i1) {
-      for (unsigned i0 = 0; i0 != s0; ++i0) {
-        memory[i1 * s0 + i0] = 13 * i1 + 17 * i0;
-      }
+    for (unsigned i = 0; i != s1 * s0; ++i) {
+      memory[i] = 3 * i;
     }
   }
 
@@ -39,17 +37,17 @@ TEST_F(ArrayView2DTest, Data) {
 TEST_F(ArrayView2DTest, Index) {
   // array[i1][i0] == memory[i1 * s0 + i0]
   EXPECT_EQ(array[0][0], 0);
-  EXPECT_EQ(array[0][1], 17);
-  EXPECT_EQ(array[0][2], 34);
-  EXPECT_EQ(array[1][0], 13);
-  EXPECT_EQ(array[1][1], 30);
-  EXPECT_EQ(array[1][2], 47);
-  EXPECT_EQ(array[2][0], 26);
-  EXPECT_EQ(array[2][1], 43);
-  EXPECT_EQ(array[2][2], 60);
-  EXPECT_EQ(array[3][0], 39);
-  EXPECT_EQ(array[3][1], 56);
-  EXPECT_EQ(array[3][2], 73);
+  EXPECT_EQ(array[0][1], 3);
+  EXPECT_EQ(array[0][2], 6);
+  EXPECT_EQ(array[1][0], 9);
+  EXPECT_EQ(array[1][1], 12);
+  EXPECT_EQ(array[1][2], 15);
+  EXPECT_EQ(array[2][0], 18);
+  EXPECT_EQ(array[2][1], 21);
+  EXPECT_EQ(array[2][2], 24);
+  EXPECT_EQ(array[3][0], 27);
+  EXPECT_EQ(array[3][1], 30);
+  EXPECT_EQ(array[3][2], 33);
 }
 
 TEST_F(ArrayView2DTest, ConvertToConst) {
@@ -57,7 +55,7 @@ TEST_F(ArrayView2DTest, ConvertToConst) {
   ArrayView2D<Host, const int> const_array(array);
 
   // Can read from const
-  EXPECT_EQ(const_array[2][1], 43);
+  EXPECT_EQ(const_array[2][1], 21);
 
   // Can't write to a const
   #if EXPECT_COMPILE_ERROR == __LINE__
@@ -72,9 +70,9 @@ TEST_F(ArrayView2DTest, ConvertToConst) {
 
 TEST_F(ArrayView2DTest, IndexOnce) {
   ArrayView1D<Host, const int> array_1 = array[1];
-  EXPECT_EQ(array_1[0], 13);
-  EXPECT_EQ(array_1[1], 30);
-  EXPECT_EQ(array_1[2], 47);
+  EXPECT_EQ(array_1[0], 9);
+  EXPECT_EQ(array_1[1], 12);
+  EXPECT_EQ(array_1[2], 15);
 }
 
 TEST_F(ArrayView2DTest, Assign) {
@@ -85,7 +83,7 @@ TEST_F(ArrayView2DTest, Assign) {
   EXPECT_EQ(other_array.s1(), s1);
   EXPECT_EQ(other_array.s0(), s0);
   EXPECT_EQ(other_array.data_for_legacy_use(), memory);
-  EXPECT_EQ(other_array[3][1], 56);
+  EXPECT_EQ(other_array[3][1], 30);
 
   // Can't be assigned if dimensions don't match
   #if EXPECT_COMPILE_ERROR == __LINE__
@@ -101,7 +99,7 @@ TEST_F(ArrayView2DTest, AssignToConst) {
 
   // Can be assigned
   const_a = array;
-  EXPECT_EQ(const_a[3][1], 56);
+  EXPECT_EQ(const_a[3][1], 30);
 
   // Can't be re-assigned to non-const
   ArrayView2D<Host, int> non_const_a(0, 0, nullptr);
@@ -119,5 +117,5 @@ TEST_F(ArrayView2DTest, Copy) {
   copy(array, other_array);
 
   EXPECT_EQ(other_array[0][0], 0);
-  EXPECT_EQ(other_array[3][2], 73);
+  EXPECT_EQ(other_array[3][2], 33);
 }

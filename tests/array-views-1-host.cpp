@@ -11,8 +11,8 @@
 class HostArrayView1DTest : public testing::Test {
  protected:
   HostArrayView1DTest() : array(s0, memory) {
-    for (unsigned i0 = 0; i0 != s0; ++i0) {
-      memory[i0] = 3 * i0;
+    for (unsigned i = 0; i != s0; ++i) {
+      memory[i] = 3 * i;
     }
   }
 
