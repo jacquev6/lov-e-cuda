@@ -4,6 +4,8 @@
 
 set -o errexit
 
+cd "$(dirname "${BASH_SOURCE[0]}")"
+
 
 if ! diff -r builder build/builder >/dev/null 2>&1 || ! diff Makefile build/Makefile >/dev/null 2>&1
 then
