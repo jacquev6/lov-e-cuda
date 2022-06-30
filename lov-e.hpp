@@ -542,9 +542,7 @@ class ArrayView2D {
   }
 
   HOST_DEVICE_DECORATORS
-  const T* data_for_legacy_use() const { return _data; }
-  HOST_DEVICE_DECORATORS
-  T* data_for_legacy_use() { return _data; }
+  T* data_for_legacy_use() const { return _data; }
 
   // Clonable
   template<typename WhereTo>
@@ -664,9 +662,7 @@ class ArrayView3D {
   }
 
   HOST_DEVICE_DECORATORS
-  const T* data_for_legacy_use() const { return _data; }
-  HOST_DEVICE_DECORATORS
-  T* data_for_legacy_use() { return _data; }
+  T* data_for_legacy_use() const { return _data; }
 
   // Clonable
   template<typename WhereTo>
@@ -793,9 +789,7 @@ class ArrayView4D {
   }
 
   HOST_DEVICE_DECORATORS
-  const T* data_for_legacy_use() const { return _data; }
-  HOST_DEVICE_DECORATORS
-  T* data_for_legacy_use() { return _data; }
+  T* data_for_legacy_use() const { return _data; }
 
   // Clonable
   template<typename WhereTo>
@@ -929,9 +923,7 @@ class ArrayView5D {
   }
 
   HOST_DEVICE_DECORATORS
-  const T* data_for_legacy_use() const { return _data; }
-  HOST_DEVICE_DECORATORS
-  T* data_for_legacy_use() { return _data; }
+  T* data_for_legacy_use() const { return _data; }
 
   // Clonable
   template<typename WhereTo>
