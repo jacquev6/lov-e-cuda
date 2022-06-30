@@ -86,6 +86,9 @@ inline void check_last_cuda_error_(const char* const file, const unsigned line) 
 class Anywhere {};
 
 class Host {
+ public:
+  static const bool can_be_allocated_on_device = false;
+
  private:
   template<typename T>
   static void force_memset(const std::size_t n, const char v, T* const p) {
@@ -140,16 +143,22 @@ class Host {
   }
 
   template<typename T>
+  HOST_DEVICE_DECORATORS  // Required in ~Array?D
   static void free(T* p) {
-    if (p == nullptr) {
-      return;
-    } else {
-      std::free(p);
-    }
+    #ifndef __CUDA_ARCH__
+      if (p == nullptr) {
+        return;
+      } else {
+        std::free(p);
+      }
+    #endif
   }
 };
 
 class Device {
+ public:
+  static const bool can_be_allocated_on_device = true;
+
  private:
   template<typename T>
   static void force_memset(const std::size_t n, const char v, T* const p) {
@@ -446,13 +455,25 @@ template<typename Where, typename T>
 class Array1D : public ArrayView1D<Where, T> {
  public:
   // RAII
+  template<typename W = Where, typename = typename std::enable_if<!W::can_be_allocated_on_device>::type>
+  Array1D(std::size_t s0, Uninitialized) :
+    ArrayView1D<Where, T>(s0, Where::template alloc<T>(s0))
+  {}
+
+  template<
+    typename = void,
+    typename W = Where,
+    typename = typename std::enable_if<W::can_be_allocated_on_device>::type
+  >
   HOST_DEVICE_DECORATORS
   Array1D(std::size_t s0, Uninitialized) :
     ArrayView1D<Where, T>(s0, Where::template alloc<T>(s0))
   {}
+
   Array1D(std::size_t s0, Zeroed) :
     ArrayView1D<Where, T>(s0, Where::template alloc_zeroed<T>(s0))
   {}
+
   HOST_DEVICE_DECORATORS
   ~Array1D() {
     free();
@@ -574,12 +595,26 @@ template<typename Where, typename T>
 class Array2D : public ArrayView2D<Where, T> {
  public:
   // RAII
+  template<typename W = Where, typename = typename std::enable_if<!W::can_be_allocated_on_device>::type>
   Array2D(std::size_t s1, std::size_t s0, Uninitialized) :
     ArrayView2D<Where, T>(s1, s0, Where::template alloc<T>(s1 * s0))
   {}
+
+  template<
+    typename = void,
+    typename W = Where,
+    typename = typename std::enable_if<W::can_be_allocated_on_device>::type
+  >
+  HOST_DEVICE_DECORATORS
+  Array2D(std::size_t s1, std::size_t s0, Uninitialized) :
+    ArrayView2D<Where, T>(s1, s0, Where::template alloc<T>(s1 * s0))
+  {}
+
   Array2D(std::size_t s1, std::size_t s0, Zeroed) :
     ArrayView2D<Where, T>(s1, s0, Where::template alloc_zeroed<T>(s1 * s0))
   {}
+
+  HOST_DEVICE_DECORATORS
   ~Array2D() {
     free();
   }
@@ -589,11 +624,13 @@ class Array2D : public ArrayView2D<Where, T> {
   Array2D& operator=(const Array2D&) = delete;
 
   // But movable
+  HOST_DEVICE_DECORATORS
   Array2D(Array2D&& o) : ArrayView2D<Where, T>(o) {
     o._s1 = 0;
     o._s0 = 0;
     o._data = nullptr;
   }
+  HOST_DEVICE_DECORATORS
   Array2D& operator=(Array2D&& o) {
     free();
     static_cast<ArrayView2D<Where, T>&>(*this) = o;
@@ -604,6 +641,7 @@ class Array2D : public ArrayView2D<Where, T> {
   }
 
  private:
+  HOST_DEVICE_DECORATORS
   void free() {
     Where::free(this->_data);
   }
@@ -696,13 +734,25 @@ template<typename Where, typename T>
 class Array3D : public ArrayView3D<Where, T> {
  public:
   // RAII
+  template<typename W = Where, typename = typename std::enable_if<!W::can_be_allocated_on_device>::type>
+  Array3D(std::size_t s2, std::size_t s1, std::size_t s0, Uninitialized) :
+    ArrayView3D<Where, T>(s2, s1, s0, Where::template alloc<T>(s2 * s1 * s0))
+  {}
+
+  template<
+    typename = void,
+    typename W = Where,
+    typename = typename std::enable_if<W::can_be_allocated_on_device>::type
+  >
   HOST_DEVICE_DECORATORS
   Array3D(std::size_t s2, std::size_t s1, std::size_t s0, Uninitialized) :
     ArrayView3D<Where, T>(s2, s1, s0, Where::template alloc<T>(s2 * s1 * s0))
   {}
+
   Array3D(std::size_t s2, std::size_t s1, std::size_t s0, Zeroed) :
     ArrayView3D<Where, T>(s2, s1, s0, Where::template alloc_zeroed<T>(s2 * s1 * s0))
   {}
+
   HOST_DEVICE_DECORATORS
   ~Array3D() {
     free();
@@ -830,12 +880,26 @@ template<typename Where, typename T>
 class Array4D : public ArrayView4D<Where, T> {
  public:
   // RAII
+  template<typename W = Where, typename = typename std::enable_if<!W::can_be_allocated_on_device>::type>
   Array4D(std::size_t s3, std::size_t s2, std::size_t s1, std::size_t s0, Uninitialized) :
     ArrayView4D<Where, T>(s3, s2, s1, s0, Where::template alloc<T>(s3 * s2 * s1 * s0))
   {}
+
+  template<
+    typename = void,
+    typename W = Where,
+    typename = typename std::enable_if<W::can_be_allocated_on_device>::type
+  >
+  HOST_DEVICE_DECORATORS
+  Array4D(std::size_t s3, std::size_t s2, std::size_t s1, std::size_t s0, Uninitialized) :
+    ArrayView4D<Where, T>(s3, s2, s1, s0, Where::template alloc<T>(s3 * s2 * s1 * s0))
+  {}
+
   Array4D(std::size_t s3, std::size_t s2, std::size_t s1, std::size_t s0, Zeroed) :
     ArrayView4D<Where, T>(s3, s2, s1, s0, Where::template alloc_zeroed<T>(s3 * s2 * s1 * s0))
   {}
+
+  HOST_DEVICE_DECORATORS
   ~Array4D() {
     free();
   }
@@ -845,6 +909,7 @@ class Array4D : public ArrayView4D<Where, T> {
   Array4D& operator=(const Array4D&) = delete;
 
   // But movable
+  HOST_DEVICE_DECORATORS
   Array4D(Array4D&& o) : ArrayView4D<Where, T>(o) {
     o._s3 = 0;
     o._s2 = 0;
@@ -852,6 +917,7 @@ class Array4D : public ArrayView4D<Where, T> {
     o._s0 = 0;
     o._data = nullptr;
   }
+  HOST_DEVICE_DECORATORS
   Array4D& operator=(Array4D&& o) {
     free();
     static_cast<ArrayView4D<Where, T>&>(*this) = o;
@@ -864,6 +930,7 @@ class Array4D : public ArrayView4D<Where, T> {
   }
 
  private:
+  HOST_DEVICE_DECORATORS
   void free() {
     Where::free(this->_data);
   }
@@ -966,12 +1033,26 @@ template<typename Where, typename T>
 class Array5D : public ArrayView5D<Where, T> {
  public:
   // RAII
+  template<typename W = Where, typename = typename std::enable_if<!W::can_be_allocated_on_device>::type>
   Array5D(std::size_t s4, std::size_t s3, std::size_t s2, std::size_t s1, std::size_t s0, Uninitialized) :
     ArrayView5D<Where, T>(s4, s3, s2, s1, s0, Where::template alloc<T>(s4 * s3 * s2 * s1 * s0))
   {}
+
+  template<
+    typename = void,
+    typename W = Where,
+    typename = typename std::enable_if<W::can_be_allocated_on_device>::type
+  >
+  HOST_DEVICE_DECORATORS
+  Array5D(std::size_t s4, std::size_t s3, std::size_t s2, std::size_t s1, std::size_t s0, Uninitialized) :
+    ArrayView5D<Where, T>(s4, s3, s2, s1, s0, Where::template alloc<T>(s4 * s3 * s2 * s1 * s0))
+  {}
+
   Array5D(std::size_t s4, std::size_t s3, std::size_t s2, std::size_t s1, std::size_t s0, Zeroed) :
     ArrayView5D<Where, T>(s4, s3, s2, s1, s0, Where::template alloc_zeroed<T>(s4 * s3 * s2 * s1 * s0))
   {}
+
+  HOST_DEVICE_DECORATORS
   ~Array5D() {
     free();
   }
@@ -981,6 +1062,7 @@ class Array5D : public ArrayView5D<Where, T> {
   Array5D& operator=(const Array5D&) = delete;
 
   // But movable
+  HOST_DEVICE_DECORATORS
   Array5D(Array5D&& o) : ArrayView5D<Where, T>(o) {
     o._s4 = 0;
     o._s3 = 0;
@@ -989,6 +1071,7 @@ class Array5D : public ArrayView5D<Where, T> {
     o._s0 = 0;
     o._data = nullptr;
   }
+  HOST_DEVICE_DECORATORS
   Array5D& operator=(Array5D&& o) {
     free();
     static_cast<ArrayView5D<Where, T>&>(*this) = o;
@@ -1002,6 +1085,7 @@ class Array5D : public ArrayView5D<Where, T> {
   }
 
  private:
+  HOST_DEVICE_DECORATORS
   void free() {
     Where::free(this->_data);
   }
