@@ -1017,7 +1017,7 @@ struct Grid {
   const dim3 threads;
 };
 
-#define CONFIG(grid) grid.blocks, grid.threads
+#define LOVE_CONFIG(grid) grid.blocks, grid.threads
 
 template<unsigned BLOCKDIM_X>
 struct GridFactory1D {
@@ -1120,5 +1120,7 @@ struct GridFactory3D {
   }
 #endif  // __NVCC__
 };
+
+#undef HOST_DEVICE_DECORATORS
 
 #endif  // LOV_E_HPP_

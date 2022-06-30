@@ -246,15 +246,15 @@ void mandelbrot_block_k(
     if (comm_dwell != DIFF_DWELL) {
       // Uniform dwell, just fill
       const Grid grid = grid::make(d, d);
-      dwell_fill_k<<<CONFIG(grid)>>>(dwells, x0, y0, d, comm_dwell);
+      dwell_fill_k<<<LOVE_CONFIG(grid)>>>(dwells, x0, y0, d, comm_dwell);
     } else if (depth + 1 < MAX_DEPTH && d / SUBDIV > MIN_SIZE) {
       // Subdivide recursively
       const Grid grid = grid::fixed(SUBDIV, SUBDIV);
-      mandelbrot_block_k<<<CONFIG(grid)>>>(dwells, cmin, cmax, x0, y0, d / SUBDIV, depth+ 1);
+      mandelbrot_block_k<<<LOVE_CONFIG(grid)>>>(dwells, cmin, cmax, x0, y0, d / SUBDIV, depth+ 1);
     } else {
       // Leaf: per-pixel kernel
       const Grid grid = grid::make(d, d);
-      mandelbrot_pixel_k<<<CONFIG(grid)>>>(dwells, cmin, cmax, x0, y0, d);
+      mandelbrot_pixel_k<<<LOVE_CONFIG(grid)>>>(dwells, cmin, cmax, x0, y0, d);
     }
     check_last_cuda_error_no_sync();
   }
@@ -269,7 +269,7 @@ int main(int, char*[]) {
   const Grid grid = grid::fixed(INIT_SUBDIV, INIT_SUBDIV);
 
   const double t1 = omp_get_wtime();
-  mandelbrot_block_k<<<CONFIG(grid)>>>(d_dwells, complex(-1.5, -1), complex(0.5, 1), 0, 0, w / INIT_SUBDIV, 1);
+  mandelbrot_block_k<<<LOVE_CONFIG(grid)>>>(d_dwells, complex(-1.5, -1), complex(0.5, 1), 0, 0, w / INIT_SUBDIV, 1);
   check_last_cuda_error();
   const double t2 = omp_get_wtime();
 
