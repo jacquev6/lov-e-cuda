@@ -82,6 +82,9 @@ inline void check_last_cuda_error_(const char* const file, const unsigned line) 
  * Memory management *
  *                   */
 
+
+class Anywhere {};
+
 class Host {
  private:
   template<typename T>
@@ -280,6 +283,48 @@ template<typename Where, typename T> class Array1D;
 template<typename Where, typename T> class ArrayView1D;
 
 template<typename T>
+class ArrayView1D<Anywhere, T> {
+ public:
+  // Constructor
+  HOST_DEVICE_DECORATORS
+  ArrayView1D(std::size_t s0, T* data) : _s0(s0), _data(data) {}
+
+  // No need for custom copy and move constructors and operators (cf. "Rule Of Zero" above)
+
+  // Generalized copy constructor and operator
+  template<typename U>
+  HOST_DEVICE_DECORATORS
+  ArrayView1D(const ArrayView1D<Anywhere, U>& o) : _s0(o.s0()), _data(o.data_for_legacy_use()) {}
+
+  template<typename U>
+  HOST_DEVICE_DECORATORS
+  ArrayView1D& operator=(const ArrayView1D<Anywhere, U>& o) {
+    _s0 = o.s0();
+    _data = o.data_for_legacy_use();
+    return *this;
+  }
+
+  // Accessors
+  HOST_DEVICE_DECORATORS
+  std::size_t s0() const { return _s0; }
+
+  HOST_DEVICE_DECORATORS
+  T& operator[](unsigned i0) const {
+    assert(i0 < _s0);
+    return *(_data + i0);
+  }
+
+  HOST_DEVICE_DECORATORS
+  T* data_for_legacy_use() const { return _data; }
+
+ private:
+  std::size_t _s0;
+  T* _data;
+
+  friend class Array1D<Anywhere, T>;
+};
+
+template<typename T>
 class ArrayView1D<Host, T> {
  public:
   // Constructor
@@ -299,6 +344,13 @@ class ArrayView1D<Host, T> {
     _s0 = o.s0();
     _data = o.data_for_legacy_use();
     return *this;
+  }
+
+  // Generalized conversion operator
+  template<typename U>
+  HOST_DEVICE_DECORATORS
+  operator ArrayView1D<Anywhere, U>() {
+    return ArrayView1D<Anywhere, U>(_s0, _data);
   }
 
   // Accessors
@@ -344,6 +396,13 @@ class ArrayView1D<Device, T> {
     _s0 = o.s0();
     _data = o.data_for_legacy_use();
     return *this;
+  }
+
+  // Generalized conversion operator
+  template<typename U>
+  HOST_DEVICE_DECORATORS
+  operator ArrayView1D<Anywhere, U>() {
+    return ArrayView1D<Anywhere, U>(_s0, _data);
   }
 
   // Accessors
@@ -463,6 +522,13 @@ class ArrayView2D {
     return *this;
   }
 
+  // Generalized conversion operator
+  template<typename U>
+  HOST_DEVICE_DECORATORS
+  operator ArrayView2D<Anywhere, U>() {
+    return ArrayView2D<Anywhere, U>(_s1, _s0, _data);
+  }
+
   // Accessors
   HOST_DEVICE_DECORATORS
   std::size_t s1() const { return _s1; }
@@ -574,6 +640,13 @@ class ArrayView3D {
     _s0 = o.s0();
     _data = o.data_for_legacy_use();
     return *this;
+  }
+
+  // Generalized conversion operator
+  template<typename U>
+  HOST_DEVICE_DECORATORS
+  operator ArrayView3D<Anywhere, U>() {
+    return ArrayView3D<Anywhere, U>(_s2, _s1, _s0, _data);
   }
 
   // Accessors
@@ -694,6 +767,13 @@ class ArrayView4D {
     _s0 = o.s0();
     _data = o.data_for_legacy_use();
     return *this;
+  }
+
+  // Generalized conversion operator
+  template<typename U>
+  HOST_DEVICE_DECORATORS
+  operator ArrayView4D<Anywhere, U>() {
+    return ArrayView4D<Anywhere, U>(_s3, _s2, _s1, _s0, _data);
   }
 
   // Accessors
@@ -821,6 +901,13 @@ class ArrayView5D {
     _s0 = o.s0();
     _data = o.data_for_legacy_use();
     return *this;
+  }
+
+  // Generalized conversion operator
+  template<typename U>
+  HOST_DEVICE_DECORATORS
+  operator ArrayView5D<Anywhere, U>() {
+    return ArrayView5D<Anywhere, U>(_s4, _s3, _s2, _s1, _s0, _data);
   }
 
   // Accessors

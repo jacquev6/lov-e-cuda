@@ -147,6 +147,13 @@ class ArraysAndArrayViewSection:
             yield "    return *this;"
             yield "  }"
             yield ""
+            yield "  // Generalized conversion operator"
+            yield "  template<typename U>"
+            yield "  HOST_DEVICE_DECORATORS"
+            yield f"  operator ArrayView{n}D<Anywhere, U>() {{"
+            yield f"    return ArrayView{n}D<Anywhere, U>({sep('_s{d}')}, _data);"
+            yield "  }"
+            yield ""
             yield "  // Accessors"
             for d in ds:
                 yield "  HOST_DEVICE_DECORATORS"
