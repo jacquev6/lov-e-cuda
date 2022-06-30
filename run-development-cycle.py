@@ -16,7 +16,7 @@ def main():
     regenerate(
         "README.md",
         re.compile(r"<!-- (BEGIN|END) GENERATED SECTION: (.*) -->"),
-        {class_.key: class_ for class_ in [ExamplesPerformanceTableSection]},
+        {class_.key: class_ for class_ in [ExamplesPerformanceTableSection, UserManualSnippetSection]},
     )
 
 
@@ -27,13 +27,21 @@ def regenerate(file_name, generated_re, section_classes):
     def gen():
         sections = [HandWrittenSection()]
         for line in original_lines:
-            m = generated_re.fullmatch(line)
-            if m:
-                if m.group(1) == "BEGIN":
-                    sections.append(section_classes[m.group(2)]())
-                    sections[-1].entry = m.group(0)
-                elif m.group(1) == "END":
-                    sections[-1].exit = m.group(0)
+            match = generated_re.fullmatch(line)
+            if match:
+                if match.group(1) == "BEGIN":
+                    name = match.group(2)
+                    sub_match = re.fullmatch(r"(.*)\((.*)\)", name)
+                    if sub_match:
+                        section_class_name = sub_match.group(1)
+                        section_arguments = (sub_match.group(2),)
+                    else:
+                        section_class_name = name
+                        section_arguments = ()
+                    sections.append(section_classes[section_class_name](*section_arguments))
+                    sections[-1].entry = match.group(0)
+                elif match.group(1) == "END":
+                    sections[-1].exit = match.group(0)
                     sections.append(HandWrittenSection())
                 else:
                     assert False
@@ -93,6 +101,34 @@ class ExamplesPerformanceTableSection:
             ("Mandelbrot<br>(dynamic parallelism)", "mandelbrot-dyn", parse_mandelbrot)
         ]:
             yield f"| {description} | {parse(name)} | {parse(name + '-lov-e')} |"
+
+
+class UserManualSnippetSection:
+    key = "user-manual-snippet"
+
+    def __init__(self, snippet_name):
+        self.__snippet_name = snippet_name
+
+    def record_original_line(self, _):
+        pass
+
+    def generate(self):
+        do_yield = False
+        with open("tests/user-manual.cu") as f:
+            for line in f:
+                line = line.rstrip()
+                if line.lstrip() == f"// BEGIN {self.__snippet_name}":
+                    indent = len(line) - len(line.lstrip())
+                    do_yield = True
+                elif line.lstrip() == f"// END {self.__snippet_name}":
+                    break
+                elif do_yield:
+                    line = line[indent:]
+                    if line:
+                        yield "    " + line
+                    else:
+                        yield ""
+        assert do_yield
 
 
 class ArraysAndArrayViewSection:

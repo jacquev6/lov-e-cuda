@@ -27,7 +27,11 @@ root_directory := $(shell pwd)
 cuda_unit_test_source_files := $(wildcard tests/*.cu)
 cpp_unit_test_source_files := $(filter-out tests/main.cpp,$(wildcard tests/*.cpp))
 cuda_example_source_files := $(wildcard examples/*.cu)
-lintable_source_files := lov-e.hpp tests/main.cpp $(cuda_unit_test_source_files) $(cpp_unit_test_source_files) $(cuda_example_source_files)
+lintable_source_files := \
+    lov-e.hpp tests/main.cpp \
+    $(filter-out tests/user-manual.cu,$(cuda_unit_test_source_files)) \
+    $(cpp_unit_test_source_files) \
+    $(cuda_example_source_files)
 
 # Intermediate files
 non_compilation_includes := $(patsubst %,build/deps/%.non-compilation.deps,$(cpp_unit_test_source_files) $(cuda_unit_test_source_files))

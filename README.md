@@ -106,8 +106,8 @@ All performance below have been measured on code compiled with `-O3 -DNDEBUG`.
 
 | Example | Without *Lov-e-cuda* | With *Lov-e-cuda* |
 | --- | --- | --- |
-| Mandelbrot<br>(static parallelism) | 183 ms *i.e.* 1464 Mpix/s | 191 ms *i.e.* 1407 Mpix/s |
-| Mandelbrot<br>(dynamic parallelism) | 43 ms *i.e.* 6272 Mpix/s | 36 ms *i.e.* 7515 Mpix/s |
+| Mandelbrot<br>(static parallelism) | 219 ms *i.e.* 1226 Mpix/s | 186 ms *i.e.* 1439 Mpix/s |
+| Mandelbrot<br>(dynamic parallelism) | 44 ms *i.e.* 6158 Mpix/s | 39 ms *i.e.* 6882 Mpix/s |
 
 <!-- END GENERATED SECTION: examples-performance-table -->
 
@@ -115,25 +115,252 @@ All performance below have been measured on code compiled with `-O3 -DNDEBUG`.
 
 ## Multi-dimensional arrays
 
-Instead of:
+### The old way
 
-<!-- BEGIN GENERATED SECTION: user-manual-snippet(bad-multi-dim-arrays) -->
-<!-- END GENERATED SECTION: user-manual-snippet(bad-multi-dim-arrays) -->
+Instead of allocating with `cudaMalloc`,
 
-<!-- @todo Document that indexes and sizes are in order sN -> ... -> s1 -> s0
-(To ensure that the right-most index is always i0. Useful when doing b = a[i1]; c = b[i0]) -->
+<!-- BEGIN GENERATED SECTION: user-manual-snippet(BadMultiDimArray-alloc) -->
+
+    float* data;
+    cudaMalloc(&data, width * height * sizeof(float));
+
+<!-- END GENERATED SECTION: user-manual-snippet(BadMultiDimArray-alloc) -->
+
+... passing pointer and sizes to your kernel
+
+<!-- BEGIN GENERATED SECTION: user-manual-snippet(BadMultiDimArray-call) -->
+
+    kernel<<<1, 1>>>(data, width, height);
+    check_last_cuda_error();
+
+<!-- END GENERATED SECTION: user-manual-snippet(BadMultiDimArray-call) -->
+
+... declared as:
+
+<!-- BEGIN GENERATED SECTION: user-manual-snippet(BadMultiDimArray-decl) -->
+
+    __global__ void kernel(float* data, const unsigned width, const unsigned height)
+
+<!-- END GENERATED SECTION: user-manual-snippet(BadMultiDimArray-decl) -->
+
+... computing explicit linearized indexes (in your kernel),
+
+<!-- BEGIN GENERATED SECTION: user-manual-snippet(BadMultiDimArray-use) -->
+
+    data[y * width + x]
+
+<!-- END GENERATED SECTION: user-manual-snippet(BadMultiDimArray-use) -->
+
+and explicitly freeing the memory with `cudaFree`,
+
+<!-- BEGIN GENERATED SECTION: user-manual-snippet(BadMultiDimArray-free) -->
+
+    cudaFree(data);
+
+<!-- END GENERATED SECTION: user-manual-snippet(BadMultiDimArray-free) -->
+
+### The new way
+
+You can allocate an `Array2D`,
+
+<!-- BEGIN GENERATED SECTION: user-manual-snippet(GoodMultiDimArray-alloc) -->
+
+    Array2D<Device, float> data(height, width, uninitialized);
+
+<!-- END GENERATED SECTION: user-manual-snippet(GoodMultiDimArray-alloc) -->
+
+... pass it, alone, to your kernel,
+
+<!-- BEGIN GENERATED SECTION: user-manual-snippet(GoodMultiDimArray-call) -->
+
+    kernel<<<1, 1>>>(data);
+    check_last_cuda_error();
+
+<!-- END GENERATED SECTION: user-manual-snippet(GoodMultiDimArray-call) -->
+
+... declared to accept an `ArrayView2D`:
+
+<!-- BEGIN GENERATED SECTION: user-manual-snippet(GoodMultiDimArray-decl) -->
+
+    __global__ void kernel(ArrayView2D<Device, float> data)
+
+<!-- END GENERATED SECTION: user-manual-snippet(GoodMultiDimArray-decl) -->
+
+... and use it with logical indexes (in your kernel).
+
+<!-- BEGIN GENERATED SECTION: user-manual-snippet(GoodMultiDimArray-use) -->
+
+    data[y][x]
+
+<!-- END GENERATED SECTION: user-manual-snippet(GoodMultiDimArray-use) -->
+
+Memory will be freed automatically at the end of the current scope.
+
+### And more
+
+You can allocate a multidimensional array on the host in a consistent manner:
+
+<!-- BEGIN GENERATED SECTION: user-manual-snippet(HostArray-decl) -->
+
+    Array3D<Host, int> a(42, 36, 57, zeroed);
+
+<!-- END GENERATED SECTION: user-manual-snippet(HostArray-decl) -->
+
+Note that:
+
+- `Array` classes are provided from `1D` to `5D`
+- the first template argument can be either:
+    - `Device` to allocate memory using `cudaMalloc`
+    - `Host` to allocate memory using `std::malloc`
+- the first N constructor arguments are the sizes corresponding to the indexes in the same order
+- the last constructor argument can be either:
+    - `uninitialized` to get undetermined values
+    - `zeroed` to get only zeroes:
+
+<!-- BEGIN GENERATED SECTION: user-manual-snippet(HostArray-zeroes) -->
+
+    EXPECT_EQ(a[0][0][0], 0);
+    EXPECT_EQ(a[41][35][56], 0);
+
+<!-- END GENERATED SECTION: user-manual-snippet(HostArray-zeroes) -->
+
+Sizes can be retrieved from the `Array` (or `ArrayView`):
+
+<!-- BEGIN GENERATED SECTION: user-manual-snippet(HostArray-sizes) -->
+
+    EXPECT_EQ(a.s2(), 42);
+    EXPECT_EQ(a.s1(), 36);
+    EXPECT_EQ(a.s0(), 57);
+
+<!-- END GENERATED SECTION: user-manual-snippet(HostArray-sizes) -->
+
+Note how the left-most size is named `s2`: this is so that taking the size after partial indexing is consistent: `s0` will always be the right-most size:
+
+<!-- BEGIN GENERATED SECTION: user-manual-snippet(HostArray-indexed-sizes) -->
+
+    EXPECT_EQ(a[0].s1(), 36);
+    EXPECT_EQ(a[0].s0(), 57);
+    EXPECT_EQ(a[0][0].s0(), 57);
+
+<!-- END GENERATED SECTION: user-manual-snippet(HostArray-indexed-sizes) -->
+
+Because, yes, you can pass a partially indexed `ArrayView` to a function:
+
+<!-- BEGIN GENERATED SECTION: user-manual-snippet(HostArray-indexed-call) -->
+
+    f(a[0][12]);
+
+<!-- END GENERATED SECTION: user-manual-snippet(HostArray-indexed-call) -->
+
+Where `f` expects a lower-dimension `ArrayView`:
+
+<!-- BEGIN GENERATED SECTION: user-manual-snippet(HostArray-function-decl) -->
+
+    void f(ArrayView1D<Host, int> a)
+
+<!-- END GENERATED SECTION: user-manual-snippet(HostArray-function-decl) -->
+
+You can also clone an `Array` (or `ArrayView`) from one memory space to another with a simple call to its `clone_to` method:
+
+<!-- BEGIN GENERATED SECTION: user-manual-snippet(HostArray-clone) -->
+
+    Array3D<Device, int> b = a.clone_to<Device>();
+
+<!-- END GENERATED SECTION: user-manual-snippet(HostArray-clone) -->
+
+Or `copy` the data between two existing arrays:
+
+<!-- BEGIN GENERATED SECTION: user-manual-snippet(HostArray-copy) -->
+
+    copy<Host, Device>(a, b);
+
+<!-- END GENERATED SECTION: user-manual-snippet(HostArray-copy) -->
+
+The template parameters can be omitted but we recommend you keep them for explicitness.
+
+### Advanced uses
+
+(Click the arrows to expand each topic)
+
+<details>
+<summary>How to deal with non-trivial types?</summary>
+
+It's best practice to use `std::malloc` and `cudaMalloc` only on [trivial types](https://en.cppreference.com/w/cpp/named_req/TrivialType) but if you really want to use an `Array` of non-trivial content type, we've got you covered.
+
+Given the following non-trivial type:
+
+<!-- BEGIN GENERATED SECTION: user-manual-snippet(NonTrivial-decl) -->
+
+    struct NonTrivial {
+      NonTrivial() {}
+    };
+
+<!-- END GENERATED SECTION: user-manual-snippet(NonTrivial-decl) -->
+
+You'll need to define the following template specializations:
+
+<!-- BEGIN GENERATED SECTION: user-manual-snippet(NonTrivial-special) -->
+
+    template<>
+    NonTrivial* Host::alloc<NonTrivial>(const std::size_t n) {
+      return Host::force_alloc<NonTrivial>(n);
+    }
+
+    template<>
+    void Host::memset<NonTrivial>(const std::size_t n, const char v, NonTrivial* const p) {
+      Host::force_memset<NonTrivial>(n, v, p);
+    }
+
+    template<>
+    NonTrivial* Device::alloc<NonTrivial>(const std::size_t n) {
+      return Device::force_alloc<NonTrivial>(n);
+    }
+
+    template<>
+    void Device::memset<NonTrivial>(const std::size_t n, const char v, NonTrivial* const p) {
+      Device::force_memset<NonTrivial>(n, v, p);
+    }
+
+<!-- END GENERATED SECTION: user-manual-snippet(NonTrivial-special) -->
+
+This will let you use it in an `Array`:
+
+<!-- BEGIN GENERATED SECTION: user-manual-snippet(NonTrivial-use) -->
+
+    Array1D<Host, NonTrivial> h(10, zeroed);
+    Array1D<Device, NonTrivial> d(10, zeroed);
+
+<!-- END GENERATED SECTION: user-manual-snippet(NonTrivial-use) -->
+
+The specializations of `memset` are required only for `zeroed`, and the specializations for `Host` (resp. `Device`) are required only to create `Host` (resp. `Device`) `Array`s.
+
+</details>
+
+<details>
+<summary>Access to raw pointer</summary>
+
+For some legacy uses and/or for integrating with third-party libraries, you may need the actual pointer to the underlying data.
+You can get it with `a.data_for_legacy_use()`.
+Don't overuse it; you should be able to avoid that most of the time.
+
+</details>
+
+<details>
+<summary>Lower-level memory management</summary>
+
+If RAII doesn't fit the style of your application (yet?), you can still benefit from the more homogeneous API of this library.
+
+@todo Document
+
+</details>
 
 ## Grid and blocks
 
-<!-- @todoc -->
-
-## Lower-level Memory management
-
-<!-- @todo Document how to allocate and memset non-trivial types -->
+@todo Document
 
 ## Error checking
 
-<!-- @todoc -->
+@todo Document
 
 # Development
 
