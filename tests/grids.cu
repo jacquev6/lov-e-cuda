@@ -7,28 +7,38 @@
 
 
 bool operator==(const Grid& left, const Grid& right) {
-  return left.blocks.x == right.blocks.x
-    && left.blocks.y == right.blocks.y
-    && left.blocks.z == right.blocks.z
-    && left.threads.x == right.threads.x
-    && left.threads.y == right.threads.y
-    && left.threads.z == right.threads.z;
+  return left.gridDim.x == right.gridDim.x
+    && left.gridDim.y == right.gridDim.y
+    && left.gridDim.z == right.gridDim.z
+    && left.blockDim.x == right.blockDim.x
+    && left.blockDim.y == right.blockDim.y
+    && left.blockDim.z == right.blockDim.z;
 }
 
 std::ostream& operator<<(std::ostream& os, const Grid& grid) {
   os << "{("
-    << grid.blocks.x << ", " << grid.blocks.y << ", " << grid.blocks.z
+    << grid.gridDim.x << ", " << grid.gridDim.y << ", " << grid.gridDim.z
     << "), ("
-    << grid.threads.x << ", " << grid.threads.y << ", " << grid.threads.z
+    << grid.blockDim.x << ", " << grid.blockDim.y << ", " << grid.blockDim.z
     << ")}";
 
   return os;
 }
 
-
 typedef GridFactory1D<17> grid_1d;
+static_assert(grid_1d::blockDim.x == 17);
+static_assert(grid_1d::blockDim.y == 1);
+static_assert(grid_1d::blockDim.z == 1);
+
 typedef GridFactory2D<11, 13> grid_2d;
+static_assert(grid_2d::blockDim.x == 11);
+static_assert(grid_2d::blockDim.y == 13);
+static_assert(grid_2d::blockDim.z == 1);
+
 typedef GridFactory3D<3, 5, 7> grid_3d;
+static_assert(grid_3d::blockDim.x == 3);
+static_assert(grid_3d::blockDim.y == 5);
+static_assert(grid_3d::blockDim.z == 7);
 
 TEST(GridTest, MakeGrid1D) {
   ASSERT_EQ(grid_1d::make(0), (Grid{{0, 1, 1}, {17, 1, 1}}));

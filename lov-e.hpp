@@ -1013,30 +1013,31 @@ Array5D<WhereTo, T> ArrayView5D<WhereFrom, T>::clone_to() const {
  *                          */
 
 struct Grid {
-  const dim3 blocks;
-  const dim3 threads;
+  const dim3 gridDim;
+  const dim3 blockDim;
 };
 
-#define LOVE_CONFIG(grid) grid.blocks, grid.threads
+#define LOVE_CONFIG(grid) grid.gridDim, grid.blockDim
 
 template<unsigned BLOCKDIM_X>
 struct GridFactory1D {
   HOST_DEVICE_DECORATORS
   static Grid make(unsigned x) {
     return Grid {
-      dim3(
+      {
         (x + BLOCKDIM_X - 1) / BLOCKDIM_X,
         1,
-        1),
-      dim3(BLOCKDIM_X, 1, 1),
+        1
+      },
+      blockDim,
     };
   }
 
   HOST_DEVICE_DECORATORS
   static Grid fixed(unsigned x) {
     return Grid {
-      dim3(x, 1, 1),
-      dim3(BLOCKDIM_X, 1, 1),
+      {x, 1, 1},
+      blockDim,
     };
   }
 
@@ -1046,6 +1047,8 @@ struct GridFactory1D {
     return blockIdx.x * BLOCKDIM_X + threadIdx.x;
   }
 #endif  // __NVCC__
+
+  static constexpr dim3 blockDim = {BLOCKDIM_X, 1, 1};
 };
 
 template<unsigned BLOCKDIM_X, unsigned BLOCKDIM_Y>
@@ -1053,19 +1056,20 @@ struct GridFactory2D {
   HOST_DEVICE_DECORATORS
   static Grid make(unsigned x, unsigned y) {
     return Grid {
-      dim3(
+      {
         (x + BLOCKDIM_X - 1) / BLOCKDIM_X,
         (y + BLOCKDIM_Y - 1) / BLOCKDIM_Y,
-        1),
-      dim3(BLOCKDIM_X, BLOCKDIM_Y, 1),
+        1
+      },
+      blockDim,
     };
   }
 
   HOST_DEVICE_DECORATORS
   static Grid fixed(unsigned x, unsigned y) {
     return Grid {
-      dim3(x, y, 1),
-      dim3(BLOCKDIM_X, BLOCKDIM_Y, 1),
+      {x, y, 1},
+      blockDim,
     };
   }
 
@@ -1080,6 +1084,8 @@ struct GridFactory2D {
     return blockIdx.y * BLOCKDIM_Y + threadIdx.y;
   }
 #endif  // __NVCC__
+
+  static constexpr dim3 blockDim = {BLOCKDIM_X, BLOCKDIM_Y, 1};
 };
 
 template<unsigned BLOCKDIM_X, unsigned BLOCKDIM_Y, unsigned BLOCKDIM_Z>
@@ -1087,19 +1093,20 @@ struct GridFactory3D {
   HOST_DEVICE_DECORATORS
   static Grid make(unsigned x, unsigned y, unsigned z) {
     return Grid {
-      dim3(
+      {
         (x + BLOCKDIM_X - 1) / BLOCKDIM_X,
         (y + BLOCKDIM_Y - 1) / BLOCKDIM_Y,
-        (z + BLOCKDIM_Z - 1) / BLOCKDIM_Z),
-      dim3(BLOCKDIM_X, BLOCKDIM_Y, BLOCKDIM_Z),
+        (z + BLOCKDIM_Z - 1) / BLOCKDIM_Z
+      },
+      blockDim,
     };
   }
 
   HOST_DEVICE_DECORATORS
   static Grid fixed(unsigned x, unsigned y, unsigned z) {
     return Grid {
-      dim3(x, y, z),
-      dim3(BLOCKDIM_X, BLOCKDIM_Y, BLOCKDIM_Z),
+      {x, y, z},
+      blockDim,
     };
   }
 
@@ -1119,6 +1126,8 @@ struct GridFactory3D {
     return blockIdx.z * BLOCKDIM_Z + threadIdx.z;
   }
 #endif  // __NVCC__
+
+  static constexpr dim3 blockDim = {BLOCKDIM_X, BLOCKDIM_Y, BLOCKDIM_Z};
 };
 
 #undef HOST_DEVICE_DECORATORS
