@@ -179,3 +179,13 @@ TEST(DeviceArrayOnHostTest, CloneToDevice) {
   EXPECT_NE(a2.data_for_legacy_use(), a1.data_for_legacy_use());
   kernel_HostArrayOnHostTest_CloneToDevice_2<<<1, 1>>>(a2);
 }
+
+__global__ void kernel_DeviceArrayOnDeviceTest_Create() {
+  Array1D<Device, int> a1(10, uninitialized);
+  Array3D<Device, int> a3(10, 10, 10, uninitialized);
+}
+
+TEST(DeviceArrayOnDeviceTest, Create) {
+  kernel_DeviceArrayOnDeviceTest_Create<<<1, 1>>>();
+  check_last_cuda_error();
+}

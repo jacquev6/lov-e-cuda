@@ -446,12 +446,14 @@ template<typename Where, typename T>
 class Array1D : public ArrayView1D<Where, T> {
  public:
   // RAII
+  HOST_DEVICE_DECORATORS
   Array1D(std::size_t s0, Uninitialized) :
     ArrayView1D<Where, T>(s0, Where::template alloc<T>(s0))
   {}
   Array1D(std::size_t s0, Zeroed) :
     ArrayView1D<Where, T>(s0, Where::template alloc_zeroed<T>(s0))
   {}
+  HOST_DEVICE_DECORATORS
   ~Array1D() {
     free();
   }
@@ -461,10 +463,12 @@ class Array1D : public ArrayView1D<Where, T> {
   Array1D& operator=(const Array1D&) = delete;
 
   // But movable
+  HOST_DEVICE_DECORATORS
   Array1D(Array1D&& o) : ArrayView1D<Where, T>(o) {
     o._s0 = 0;
     o._data = nullptr;
   }
+  HOST_DEVICE_DECORATORS
   Array1D& operator=(Array1D&& o) {
     free();
     static_cast<ArrayView1D<Where, T>&>(*this) = o;
@@ -474,6 +478,7 @@ class Array1D : public ArrayView1D<Where, T> {
   }
 
  private:
+  HOST_DEVICE_DECORATORS
   void free() {
     Where::free(this->_data);
   }
@@ -691,12 +696,14 @@ template<typename Where, typename T>
 class Array3D : public ArrayView3D<Where, T> {
  public:
   // RAII
+  HOST_DEVICE_DECORATORS
   Array3D(std::size_t s2, std::size_t s1, std::size_t s0, Uninitialized) :
     ArrayView3D<Where, T>(s2, s1, s0, Where::template alloc<T>(s2 * s1 * s0))
   {}
   Array3D(std::size_t s2, std::size_t s1, std::size_t s0, Zeroed) :
     ArrayView3D<Where, T>(s2, s1, s0, Where::template alloc_zeroed<T>(s2 * s1 * s0))
   {}
+  HOST_DEVICE_DECORATORS
   ~Array3D() {
     free();
   }
@@ -706,12 +713,14 @@ class Array3D : public ArrayView3D<Where, T> {
   Array3D& operator=(const Array3D&) = delete;
 
   // But movable
+  HOST_DEVICE_DECORATORS
   Array3D(Array3D&& o) : ArrayView3D<Where, T>(o) {
     o._s2 = 0;
     o._s1 = 0;
     o._s0 = 0;
     o._data = nullptr;
   }
+  HOST_DEVICE_DECORATORS
   Array3D& operator=(Array3D&& o) {
     free();
     static_cast<ArrayView3D<Where, T>&>(*this) = o;
@@ -723,6 +732,7 @@ class Array3D : public ArrayView3D<Where, T> {
   }
 
  private:
+  HOST_DEVICE_DECORATORS
   void free() {
     Where::free(this->_data);
   }
