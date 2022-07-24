@@ -9,6 +9,7 @@
 #include <cuda_runtime.h>
 
 #include <cassert>
+#include <cstdio>
 #include <cstring>
 #include <exception>
 #include <type_traits>
@@ -28,7 +29,7 @@
 struct CudaError : public std::exception {
   CudaError(const char* const file_, const unsigned line_, const cudaError_t error_) :
       file(file_), line(line_), error(error_) {
-    snprintf(
+    std::snprintf(
       _what, sizeof(_what),
       "CUDA ERROR, detected at %s:%i: code %i=%s: %s",
       file, line, static_cast<unsigned>(error), cudaGetErrorName(error), cudaGetErrorString(error));
