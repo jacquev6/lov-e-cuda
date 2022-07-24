@@ -10,7 +10,7 @@
 
 class ArrayView2DTest : public testing::Test {
  protected:
-  ArrayView2DTest() : array(s1, s0, memory) {
+  ArrayView2DTest() : array(s1, s0, memory), const_array(s1, s0, memory) {
     for (unsigned i = 0; i != s1 * s0; ++i) {
       memory[i] = 3 * i;
     }
@@ -20,6 +20,7 @@ class ArrayView2DTest : public testing::Test {
   static const unsigned s0 = 3;
   int memory[s1 * s0];  // NOLINT(runtime/arrays)
   ArrayView2D<Host, int> array;
+  ArrayView2D<Host, const int> const_array;
 };
 
 const unsigned ArrayView2DTest::s1;
@@ -133,6 +134,23 @@ TEST_F(ArrayView2DTest, CopyToArray) {
 
 TEST_F(ArrayView2DTest, Clone) {
   Array2D<Host, int> other_array = array.clone_to<Host>();
+  EXPECT_EQ(other_array[0][0], 0);
+  EXPECT_EQ(other_array[3][2], 33);
+}
+
+TEST_F(ArrayView2DTest, CopyConst) {
+  Array2D<Host, int> other_array(s1, s0, uninitialized);
+  other_array[0][0] = 42;
+  other_array[3][2] = 42;
+
+  copy(const_array, other_array);
+
+  EXPECT_EQ(other_array[0][0], 0);
+  EXPECT_EQ(other_array[3][2], 33);
+}
+
+TEST_F(ArrayView2DTest, CloneConst) {
+  Array2D<Host, int> other_array = const_array.clone_to<Host>();
   EXPECT_EQ(other_array[0][0], 0);
   EXPECT_EQ(other_array[3][2], 33);
 }

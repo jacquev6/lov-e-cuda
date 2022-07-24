@@ -219,7 +219,7 @@ struct From {
   template<typename WhereTo>
   struct To {
     template<typename T>
-    static void copy(const std::size_t n, const T* const src, T* const dst);
+    static void copy(const std::size_t n, const T* const src, typename std::remove_const<T>::type* const dst);
 
     template<typename T>
     static T* clone(const std::size_t n, const T* const src) {
@@ -231,7 +231,10 @@ struct From {
 };
 
 template<> template<> template<typename T>
-void From<Host>::To<Host>::copy(const std::size_t n, const T* const src, T* const dst) {
+void From<Host>::To<Host>::copy(
+    const std::size_t n,
+    const T* const src,
+    typename std::remove_const<T>::type* const dst) {
   if (n == 0) {
     return;
   } else {
@@ -240,7 +243,10 @@ void From<Host>::To<Host>::copy(const std::size_t n, const T* const src, T* cons
 }
 
 template<> template<> template<typename T>
-void From<Host>::To<Device>::copy(const std::size_t n, const T* const src, T* const dst) {
+void From<Host>::To<Device>::copy(
+    const std::size_t n,
+    const T* const src,
+    typename std::remove_const<T>::type* const dst) {
   if (n == 0) {
     return;
   } else {
@@ -249,7 +255,10 @@ void From<Host>::To<Device>::copy(const std::size_t n, const T* const src, T* co
 }
 
 template<> template<> template<typename T>
-void From<Device>::To<Device>::copy(const std::size_t n, const T* const src, T* const dst) {
+void From<Device>::To<Device>::copy(
+    const std::size_t n,
+    const T* const src,
+    typename std::remove_const<T>::type* const dst) {
   if (n == 0) {
     return;
   } else {
@@ -258,7 +267,10 @@ void From<Device>::To<Device>::copy(const std::size_t n, const T* const src, T* 
 }
 
 template<> template<> template<typename T>
-void From<Device>::To<Host>::copy(const std::size_t n, const T* const src, T* const dst) {
+void From<Device>::To<Host>::copy(
+    const std::size_t n,
+    const T* const src,
+    typename std::remove_const<T>::type* const dst) {
   if (n == 0) {
     return;
   } else {
@@ -376,7 +388,7 @@ class ArrayView1D<Host, T> {
 
   // Clonable
   template<typename WhereTo>
-  Array1D<WhereTo, T> clone_to() const;
+  Array1D<WhereTo, typename std::remove_const<T>::type> clone_to() const;
 
  private:
   std::size_t _s0;
@@ -431,7 +443,7 @@ class ArrayView1D<Device, T> {
 
   // Clonable
   template<typename WhereTo>
-  Array1D<WhereTo, T> clone_to() const;
+  Array1D<WhereTo, typename std::remove_const<T>::type> clone_to() const;
 
  private:
   std::size_t _s0;
@@ -444,7 +456,7 @@ class ArrayView1D<Device, T> {
 // BEGIN GENERATED SECTION: arrays-and-array-views
 
 template<typename WhereFrom, typename WhereTo, typename T>
-void copy(ArrayView1D<WhereFrom, T> src, ArrayView1D<WhereTo, T> dst) {
+void copy(ArrayView1D<WhereFrom, T> src, ArrayView1D<WhereTo, typename std::remove_const<T>::type> dst) {
   assert(dst.s0() == src.s0());
 
   From<WhereFrom>::template To<WhereTo>::template copy(
@@ -507,16 +519,16 @@ class Array1D : public ArrayView1D<Where, T> {
 
 template<typename T>
 template<typename WhereTo>
-Array1D<WhereTo, T> ArrayView1D<Host, T>::clone_to() const {
-  Array1D<WhereTo, T> dst(this->s0(), uninitialized);
+Array1D<WhereTo, typename std::remove_const<T>::type> ArrayView1D<Host, T>::clone_to() const {
+  Array1D<WhereTo, typename std::remove_const<T>::type> dst(this->s0(), uninitialized);
   copy(*this, dst);  // NOLINT(build/include_what_you_use)
   return dst;
 }
 
 template<typename T>
 template<typename WhereTo>
-Array1D<WhereTo, T> ArrayView1D<Device, T>::clone_to() const {
-  Array1D<WhereTo, T> dst(this->s0(), uninitialized);
+Array1D<WhereTo, typename std::remove_const<T>::type> ArrayView1D<Device, T>::clone_to() const {
+  Array1D<WhereTo, typename std::remove_const<T>::type> dst(this->s0(), uninitialized);
   copy(*this, dst);  // NOLINT(build/include_what_you_use)
   return dst;
 }
@@ -572,7 +584,7 @@ class ArrayView2D {
 
   // Clonable
   template<typename WhereTo>
-  Array2D<WhereTo, T> clone_to() const;
+  Array2D<WhereTo, typename std::remove_const<T>::type> clone_to() const;
 
  private:
   std::size_t _s1;
@@ -583,7 +595,7 @@ class ArrayView2D {
 };
 
 template<typename WhereFrom, typename WhereTo, typename T>
-void copy(ArrayView2D<WhereFrom, T> src, ArrayView2D<WhereTo, T> dst) {
+void copy(ArrayView2D<WhereFrom, T> src, ArrayView2D<WhereTo, typename std::remove_const<T>::type> dst) {
   assert(dst.s1() == src.s1());
   assert(dst.s0() == src.s0());
 
@@ -649,8 +661,9 @@ class Array2D : public ArrayView2D<Where, T> {
 
 template<typename WhereFrom, typename T>
 template<typename WhereTo>
-Array2D<WhereTo, T> ArrayView2D<WhereFrom, T>::clone_to() const {
-  Array2D<WhereTo, T> dst(this->s1(), this->s0(), uninitialized);
+Array2D<WhereTo, typename std::remove_const<T>::type> ArrayView2D<WhereFrom, T>::clone_to() const {
+  Array2D<WhereTo, typename std::remove_const<T>::type> dst(
+    this->s1(), this->s0(), uninitialized);
   copy(*this, dst);  // NOLINT(build/include_what_you_use)
   return dst;
 }
@@ -709,7 +722,7 @@ class ArrayView3D {
 
   // Clonable
   template<typename WhereTo>
-  Array3D<WhereTo, T> clone_to() const;
+  Array3D<WhereTo, typename std::remove_const<T>::type> clone_to() const;
 
  private:
   std::size_t _s2;
@@ -721,7 +734,7 @@ class ArrayView3D {
 };
 
 template<typename WhereFrom, typename WhereTo, typename T>
-void copy(ArrayView3D<WhereFrom, T> src, ArrayView3D<WhereTo, T> dst) {
+void copy(ArrayView3D<WhereFrom, T> src, ArrayView3D<WhereTo, typename std::remove_const<T>::type> dst) {
   assert(dst.s2() == src.s2());
   assert(dst.s1() == src.s1());
   assert(dst.s0() == src.s0());
@@ -790,8 +803,9 @@ class Array3D : public ArrayView3D<Where, T> {
 
 template<typename WhereFrom, typename T>
 template<typename WhereTo>
-Array3D<WhereTo, T> ArrayView3D<WhereFrom, T>::clone_to() const {
-  Array3D<WhereTo, T> dst(this->s2(), this->s1(), this->s0(), uninitialized);
+Array3D<WhereTo, typename std::remove_const<T>::type> ArrayView3D<WhereFrom, T>::clone_to() const {
+  Array3D<WhereTo, typename std::remove_const<T>::type> dst(
+    this->s2(), this->s1(), this->s0(), uninitialized);
   copy(*this, dst);  // NOLINT(build/include_what_you_use)
   return dst;
 }
@@ -853,7 +867,7 @@ class ArrayView4D {
 
   // Clonable
   template<typename WhereTo>
-  Array4D<WhereTo, T> clone_to() const;
+  Array4D<WhereTo, typename std::remove_const<T>::type> clone_to() const;
 
  private:
   std::size_t _s3;
@@ -866,7 +880,7 @@ class ArrayView4D {
 };
 
 template<typename WhereFrom, typename WhereTo, typename T>
-void copy(ArrayView4D<WhereFrom, T> src, ArrayView4D<WhereTo, T> dst) {
+void copy(ArrayView4D<WhereFrom, T> src, ArrayView4D<WhereTo, typename std::remove_const<T>::type> dst) {
   assert(dst.s3() == src.s3());
   assert(dst.s2() == src.s2());
   assert(dst.s1() == src.s1());
@@ -938,8 +952,9 @@ class Array4D : public ArrayView4D<Where, T> {
 
 template<typename WhereFrom, typename T>
 template<typename WhereTo>
-Array4D<WhereTo, T> ArrayView4D<WhereFrom, T>::clone_to() const {
-  Array4D<WhereTo, T> dst(this->s3(), this->s2(), this->s1(), this->s0(), uninitialized);
+Array4D<WhereTo, typename std::remove_const<T>::type> ArrayView4D<WhereFrom, T>::clone_to() const {
+  Array4D<WhereTo, typename std::remove_const<T>::type> dst(
+    this->s3(), this->s2(), this->s1(), this->s0(), uninitialized);
   copy(*this, dst);  // NOLINT(build/include_what_you_use)
   return dst;
 }
@@ -1004,7 +1019,7 @@ class ArrayView5D {
 
   // Clonable
   template<typename WhereTo>
-  Array5D<WhereTo, T> clone_to() const;
+  Array5D<WhereTo, typename std::remove_const<T>::type> clone_to() const;
 
  private:
   std::size_t _s4;
@@ -1018,7 +1033,7 @@ class ArrayView5D {
 };
 
 template<typename WhereFrom, typename WhereTo, typename T>
-void copy(ArrayView5D<WhereFrom, T> src, ArrayView5D<WhereTo, T> dst) {
+void copy(ArrayView5D<WhereFrom, T> src, ArrayView5D<WhereTo, typename std::remove_const<T>::type> dst) {
   assert(dst.s4() == src.s4());
   assert(dst.s3() == src.s3());
   assert(dst.s2() == src.s2());
@@ -1093,8 +1108,9 @@ class Array5D : public ArrayView5D<Where, T> {
 
 template<typename WhereFrom, typename T>
 template<typename WhereTo>
-Array5D<WhereTo, T> ArrayView5D<WhereFrom, T>::clone_to() const {
-  Array5D<WhereTo, T> dst(this->s4(), this->s3(), this->s2(), this->s1(), this->s0(), uninitialized);
+Array5D<WhereTo, typename std::remove_const<T>::type> ArrayView5D<WhereFrom, T>::clone_to() const {
+  Array5D<WhereTo, typename std::remove_const<T>::type> dst(
+    this->s4(), this->s3(), this->s2(), this->s1(), this->s0(), uninitialized);
   copy(*this, dst);  // NOLINT(build/include_what_you_use)
   return dst;
 }

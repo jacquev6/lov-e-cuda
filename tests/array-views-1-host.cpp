@@ -10,7 +10,7 @@
 
 class HostArrayView1DTest : public testing::Test {
  protected:
-  HostArrayView1DTest() : array(s0, memory) {
+  HostArrayView1DTest() : array(s0, memory), const_array(s0, memory) {
     for (unsigned i = 0; i != s0; ++i) {
       memory[i] = 3 * i;
     }
@@ -19,6 +19,7 @@ class HostArrayView1DTest : public testing::Test {
   static const unsigned s0 = 5;
   int memory[s0];  // NOLINT(runtime/arrays)
   ArrayView1D<Host, int> array;
+  ArrayView1D<Host, const int> const_array;
 };
 
 const unsigned HostArrayView1DTest::s0;
@@ -101,5 +102,22 @@ TEST_F(HostArrayView1DTest, Copy) {
 
 TEST_F(HostArrayView1DTest, Clone) {
   Array1D<Host, int> other_array = array.clone_to<Host>();
+  EXPECT_EQ(other_array[4], 12);
+}
+
+TEST_F(HostArrayView1DTest, CopyConst) {
+  int other_memory[s0];  // NOLINT(runtime/arrays)
+  ArrayView1D<Host, int> other_array(s0, other_memory);
+  other_array[0] = 42;
+  other_array[4] = 42;
+
+  copy(const_array, other_array);
+
+  EXPECT_EQ(other_array[0], 0);
+  EXPECT_EQ(other_array[4], 12);
+}
+
+TEST_F(HostArrayView1DTest, CloneConst) {
+  Array1D<Host, int> other_array = const_array.clone_to<Host>();
   EXPECT_EQ(other_array[4], 12);
 }

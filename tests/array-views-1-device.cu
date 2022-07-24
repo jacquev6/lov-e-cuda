@@ -16,7 +16,7 @@ __global__ void kernel_DeviceArrayView1DTest_SetUp(unsigned s0, int* memory) {
 
 class DeviceArrayView1DTest : public testing::Test {
  protected:
-  DeviceArrayView1DTest() : memory(Device::alloc<int>(s0)), array(s0, memory) {
+  DeviceArrayView1DTest() : memory(Device::alloc<int>(s0)), array(s0, memory), const_array(s0, memory) {
     kernel_DeviceArrayView1DTest_SetUp<<<1, 1>>>(s0, memory);
   }
 
@@ -27,6 +27,7 @@ class DeviceArrayView1DTest : public testing::Test {
   static const unsigned s0 = 5;
   int* memory;
   ArrayView1D<Device, int> array;
+  ArrayView1D<Device, const int> const_array;
 };
 
 const unsigned DeviceArrayView1DTest::s0;
@@ -173,6 +174,27 @@ TEST_F(DeviceArrayView1DTest, Copy) {
 
 TEST_F(DeviceArrayView1DTest, Clone) {
   Array1D<Device, int> other_array = array.clone_to<Device>();
+
+  kernel_DeviceArrayView1DTest_Copy_2<<<1, 1>>>(other_array);
+  check_last_cuda_error();
+}
+
+TEST_F(DeviceArrayView1DTest, CopyConst) {
+  int* other_memory = Device::alloc<int>(s0);
+  ArrayView1D<Device, int> other_array(s0, other_memory);
+  kernel_DeviceArrayView1DTest_Copy_1<<<1, 1>>>(other_array);
+  check_last_cuda_error();
+
+  copy(const_array, other_array);
+
+  kernel_DeviceArrayView1DTest_Copy_2<<<1, 1>>>(other_array);
+  check_last_cuda_error();
+
+  Device::free(other_memory);
+}
+
+TEST_F(DeviceArrayView1DTest, CloneConst) {
+  Array1D<Device, int> other_array = const_array.clone_to<Device>();
 
   kernel_DeviceArrayView1DTest_Copy_2<<<1, 1>>>(other_array);
   check_last_cuda_error();
