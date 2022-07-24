@@ -22,7 +22,7 @@ TEST(CheckCudaErrorsTest, AssertInKernelDetectedOnHost) {
     } catch(const CudaError& ex) {
       EXPECT_STREQ(
         ex.what(),
-        "CUDA ERROR, detected at bar/baz.cu:42: code 710=cudaErrorAssert: device-side assert triggered");
+        "CUDA ERROR, detected at bar/baz.cu:49: code 710=cudaErrorAssert: device-side assert triggered");
       throw;
     }
   }, CudaError);

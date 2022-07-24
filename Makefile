@@ -109,7 +109,7 @@ examples: $(example_sentinel_files)
 #################
 
 # Ah the pain of enabling "all" 'g++' warnings... https://stackoverflow.com/a/11720263/905845
-gcc_flags := -std=c++11 -fopenmp -W -Wall -Wextra -Werror -pedantic -I/usr/local/cuda-11.2/targets/x86_64-linux/include
+gcc_flags := -std=c++11 -fopenmp -W -Wall -Wextra -Werror -pedantic -I/usr/local/cuda-10.2/targets/x86_64-linux/include
 
 # Targets:
 # - 52: Vincent's GeForce GTX TITAN X and Laurent's GeForce GTX 980 Ti
