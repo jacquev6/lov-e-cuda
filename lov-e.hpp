@@ -286,21 +286,22 @@ void From<Device>::To<Host>::copy(
 // The 'ArrayView?D' classes have "non-owning pointer" semantics, so they follow the
 // [Rule of Zero](http://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Rc-zero).
 
-// Constructor parameters for 'Array?D'
-enum Zeroed {zeroed};
-enum Uninitialized {uninitialized};
-
 // The 'Array?D' classes have "owning pointer" semantics, so they follow the
 // [Rule of Five](http://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Rc-five).
-
-// Forward declaration for 'friend' declaration
-template<typename Where, typename T> class Array1D;
 
 // The one-dimensional case is special because its operator[] actually accesses the underlying memory.
 // Trying to access device memory from the host (and reciprocally) fails at run time. We provide
 // specializations for each possible 'Where', to decorate (with '__host__' and/or '__device__') the
 // 'T& operator[](unsigned i0)' to forbid that *during compilation*. This implies some code duplication,
 // but it's worth it.
+
+// Constructor parameters for 'Array?D'
+enum Zeroed {zeroed};
+enum Uninitialized {uninitialized};
+
+// BEGIN GENERATED SECTION: arrays-and-array-views
+
+template<typename Where, typename T> class Array1D;
 
 template<typename Where, typename T> class ArrayView1D;
 
@@ -309,14 +310,16 @@ class ArrayView1D<Anywhere, T> {
  public:
   // Constructor
   HOST_DEVICE_DECORATORS
-  ArrayView1D(std::size_t s0, T* data) : _s0(s0), _data(data) {}
+  ArrayView1D(std::size_t s0, T* data) :
+    _s0(s0), _data(data) {}
 
   // No need for custom copy and move constructors and operators (cf. "Rule Of Zero" above)
 
   // Generalized copy constructor and operator
   template<typename U>
   HOST_DEVICE_DECORATORS
-  ArrayView1D(const ArrayView1D<Anywhere, U>& o) : _s0(o.s0()), _data(o.data()) {}
+  ArrayView1D(const ArrayView1D<Anywhere, U>& o) :
+    _s0(o.s0()), _data(o.data()) {}
 
   template<typename U>
   HOST_DEVICE_DECORATORS
@@ -324,6 +327,13 @@ class ArrayView1D<Anywhere, T> {
     _s0 = o.s0();
     _data = o.data();
     return *this;
+  }
+
+  // Generalized conversion operator
+  template<typename U>
+  HOST_DEVICE_DECORATORS
+  operator ArrayView1D<Anywhere, U>() {
+    return ArrayView1D<Anywhere, U>(_s0, _data);
   }
 
   // Accessors
@@ -352,14 +362,16 @@ class ArrayView1D<Host, T> {
  public:
   // Constructor
   HOST_DEVICE_DECORATORS
-  ArrayView1D(std::size_t s0, T* data) : _s0(s0), _data(data) {}
+  ArrayView1D(std::size_t s0, T* data) :
+    _s0(s0), _data(data) {}
 
   // No need for custom copy and move constructors and operators (cf. "Rule Of Zero" above)
 
   // Generalized copy constructor and operator
   template<typename U>
   HOST_DEVICE_DECORATORS
-  ArrayView1D(const ArrayView1D<Host, U>& o) : _s0(o.s0()), _data(o.data()) {}
+  ArrayView1D(const ArrayView1D<Host, U>& o) :
+    _s0(o.s0()), _data(o.data()) {}
 
   template<typename U>
   HOST_DEVICE_DECORATORS
@@ -392,7 +404,7 @@ class ArrayView1D<Host, T> {
   T* data() const { return _data; }
 
   void fill_with_zeros() const {
-    Host::memreset<T>(total_size(), _data);
+    Host::template memreset<T>(total_size(), data());
   }
 
   // Clonable
@@ -413,14 +425,16 @@ class ArrayView1D<Device, T> {
  public:
   // Constructor
   HOST_DEVICE_DECORATORS
-  ArrayView1D(std::size_t s0, T* data) : _s0(s0), _data(data) {}
+  ArrayView1D(std::size_t s0, T* data) :
+    _s0(s0), _data(data) {}
 
   // No need for custom copy and move constructors and operators (cf. "Rule Of Zero" above)
 
   // Generalized copy constructor and operator
   template<typename U>
   HOST_DEVICE_DECORATORS
-  ArrayView1D(const ArrayView1D<Device, U>& o) : _s0(o.s0()), _data(o.data()) {}
+  ArrayView1D(const ArrayView1D<Device, U>& o) :
+    _s0(o.s0()), _data(o.data()) {}
 
   template<typename U>
   HOST_DEVICE_DECORATORS
@@ -456,7 +470,7 @@ class ArrayView1D<Device, T> {
   T* data() const { return _data; }
 
   void fill_with_zeros() const {
-    Device::memreset<T>(total_size(), _data);
+    Device::template memreset<T>(total_size(), data());
   }
 
   // Clonable
@@ -574,8 +588,6 @@ Array1D<WhereTo, typename std::remove_const<T>::type> ArrayView1D<Device, T>::cl
   copy(*this, ref(dst));  // NOLINT(build/include_what_you_use)
   return dst;
 }
-
-// BEGIN GENERATED SECTION: arrays-and-array-views
 
 template<typename Where, typename T> class Array2D;
 
