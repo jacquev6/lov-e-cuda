@@ -211,6 +211,8 @@ class ArraysAndArrayViewSection:
             yield "  template<typename WhereTo>"
             yield f"  Array{n}D<WhereTo, typename std::remove_const<T>::type> clone_to() const;"
             yield ""
+            yield f"  Array{n}D<Where, typename std::remove_const<T>::type> clone() const {{ return clone_to<Where>(); }}"
+            yield ""
             yield " private:"
             for d in ds:
                 yield f"  std::size_t _s{d};"

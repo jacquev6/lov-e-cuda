@@ -397,6 +397,8 @@ class ArrayView1D<Host, T> {
   template<typename WhereTo>
   Array1D<WhereTo, typename std::remove_const<T>::type> clone_to() const;
 
+  Array1D<Host, typename std::remove_const<T>::type> clone() const { return clone_to<Host>(); }
+
  private:
   std::size_t _s0;
   T* _data;
@@ -454,6 +456,8 @@ class ArrayView1D<Device, T> {
   // Clonable
   template<typename WhereTo>
   Array1D<WhereTo, typename std::remove_const<T>::type> clone_to() const;
+
+  Array1D<Device, typename std::remove_const<T>::type> clone() const { return clone_to<Device>(); }
 
  private:
   std::size_t _s0;
@@ -599,6 +603,8 @@ class ArrayView2D {
   template<typename WhereTo>
   Array2D<WhereTo, typename std::remove_const<T>::type> clone_to() const;
 
+  Array2D<Where, typename std::remove_const<T>::type> clone() const { return clone_to<Where>(); }
+
  private:
   std::size_t _s1;
   std::size_t _s0;
@@ -739,6 +745,8 @@ class ArrayView3D {
   // Clonable
   template<typename WhereTo>
   Array3D<WhereTo, typename std::remove_const<T>::type> clone_to() const;
+
+  Array3D<Where, typename std::remove_const<T>::type> clone() const { return clone_to<Where>(); }
 
  private:
   std::size_t _s2;
@@ -887,6 +895,8 @@ class ArrayView4D {
   // Clonable
   template<typename WhereTo>
   Array4D<WhereTo, typename std::remove_const<T>::type> clone_to() const;
+
+  Array4D<Where, typename std::remove_const<T>::type> clone() const { return clone_to<Where>(); }
 
  private:
   std::size_t _s3;
@@ -1042,6 +1052,8 @@ class ArrayView5D {
   // Clonable
   template<typename WhereTo>
   Array5D<WhereTo, typename std::remove_const<T>::type> clone_to() const;
+
+  Array5D<Where, typename std::remove_const<T>::type> clone() const { return clone_to<Where>(); }
 
  private:
   std::size_t _s4;

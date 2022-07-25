@@ -101,8 +101,13 @@ TEST_F(HostArrayView1DTest, Copy) {
   EXPECT_EQ(other_array[4], 12);
 }
 
-TEST_F(HostArrayView1DTest, Clone) {
+TEST_F(HostArrayView1DTest, CloneTo) {
   Array1D<Host, int> other_array = array.clone_to<Host>();
+  EXPECT_EQ(other_array[4], 12);
+}
+
+TEST_F(HostArrayView1DTest, Clone) {
+  Array1D<Host, int> other_array = array.clone();
   EXPECT_EQ(other_array[4], 12);
 }
 
@@ -118,7 +123,12 @@ TEST_F(HostArrayView1DTest, CopyConst) {
   EXPECT_EQ(other_array[4], 12);
 }
 
-TEST_F(HostArrayView1DTest, CloneConst) {
+TEST_F(HostArrayView1DTest, CloneToConst) {
   Array1D<Host, int> other_array = const_array.clone_to<Host>();
+  EXPECT_EQ(other_array[4], 12);
+}
+
+TEST_F(HostArrayView1DTest, CloneConst) {
+  Array1D<Host, int> other_array = const_array.clone();
   EXPECT_EQ(other_array[4], 12);
 }

@@ -173,8 +173,15 @@ TEST_F(DeviceArrayView1DTest, Copy) {
   Device::free(other_memory);
 }
 
-TEST_F(DeviceArrayView1DTest, Clone) {
+TEST_F(DeviceArrayView1DTest, CloneTo) {
   Array1D<Device, int> other_array = array.clone_to<Device>();
+
+  kernel_DeviceArrayView1DTest_Copy_2<<<1, 1>>>(other_array);
+  check_last_cuda_error();
+}
+
+TEST_F(DeviceArrayView1DTest, Clone) {
+  Array1D<Device, int> other_array = array.clone();
 
   kernel_DeviceArrayView1DTest_Copy_2<<<1, 1>>>(other_array);
   check_last_cuda_error();
@@ -194,8 +201,15 @@ TEST_F(DeviceArrayView1DTest, CopyConst) {
   Device::free(other_memory);
 }
 
-TEST_F(DeviceArrayView1DTest, CloneConst) {
+TEST_F(DeviceArrayView1DTest, CloneToConst) {
   Array1D<Device, int> other_array = const_array.clone_to<Device>();
+
+  kernel_DeviceArrayView1DTest_Copy_2<<<1, 1>>>(other_array);
+  check_last_cuda_error();
+}
+
+TEST_F(DeviceArrayView1DTest, CloneConst) {
+  Array1D<Device, int> other_array = const_array.clone();
 
   kernel_DeviceArrayView1DTest_Copy_2<<<1, 1>>>(other_array);
   check_last_cuda_error();

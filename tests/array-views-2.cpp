@@ -133,8 +133,14 @@ TEST_F(ArrayView2DTest, CopyToArray) {
   EXPECT_EQ(other_array[3][2], 33);
 }
 
-TEST_F(ArrayView2DTest, Clone) {
+TEST_F(ArrayView2DTest, CloneTo) {
   Array2D<Host, int> other_array = array.clone_to<Host>();
+  EXPECT_EQ(other_array[0][0], 0);
+  EXPECT_EQ(other_array[3][2], 33);
+}
+
+TEST_F(ArrayView2DTest, Clone) {
+  Array2D<Host, int> other_array = array.clone();
   EXPECT_EQ(other_array[0][0], 0);
   EXPECT_EQ(other_array[3][2], 33);
 }
@@ -150,8 +156,14 @@ TEST_F(ArrayView2DTest, CopyConst) {
   EXPECT_EQ(other_array[3][2], 33);
 }
 
-TEST_F(ArrayView2DTest, CloneConst) {
+TEST_F(ArrayView2DTest, CloneToConst) {
   Array2D<Host, int> other_array = const_array.clone_to<Host>();
+  EXPECT_EQ(other_array[0][0], 0);
+  EXPECT_EQ(other_array[3][2], 33);
+}
+
+TEST_F(ArrayView2DTest, CloneConst) {
+  Array2D<Host, int> other_array = const_array.clone();
   EXPECT_EQ(other_array[0][0], 0);
   EXPECT_EQ(other_array[3][2], 33);
 }
