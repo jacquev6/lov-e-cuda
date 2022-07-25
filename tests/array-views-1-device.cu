@@ -34,6 +34,7 @@ const unsigned DeviceArrayView1DTest::s0;
 
 TEST_F(DeviceArrayView1DTest, GetSizes) {
   EXPECT_EQ(array.s0(), s0);
+  EXPECT_EQ(array.total_size(), s0);
 }
 
 TEST_F(DeviceArrayView1DTest, Data) {

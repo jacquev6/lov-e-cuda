@@ -29,6 +29,7 @@ const unsigned ArrayView2DTest::s0;
 TEST_F(ArrayView2DTest, GetSizes) {
   EXPECT_EQ(array.s0(), s0);
   EXPECT_EQ(array.s1(), s1);
+  EXPECT_EQ(array.total_size(), s1 * s0);
 }
 
 TEST_F(ArrayView2DTest, Data) {

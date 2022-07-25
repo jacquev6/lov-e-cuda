@@ -331,6 +331,9 @@ class ArrayView1D<Anywhere, T> {
   std::size_t s0() const { return _s0; }
 
   HOST_DEVICE_DECORATORS
+  std::size_t total_size() const { return _s0; }
+
+  HOST_DEVICE_DECORATORS
   T& operator[](unsigned i0) const {
     assert(i0 < _s0);
     return *(_data + i0);
@@ -378,6 +381,9 @@ class ArrayView1D<Host, T> {
   // Accessors
   HOST_DEVICE_DECORATORS
   std::size_t s0() const { return _s0; }
+
+  HOST_DEVICE_DECORATORS
+  std::size_t total_size() const { return _s0; }
 
   T& operator[](unsigned i0) const {
     assert(i0 < _s0);
@@ -430,6 +436,9 @@ class ArrayView1D<Device, T> {
   // Accessors
   HOST_DEVICE_DECORATORS
   std::size_t s0() const { return _s0; }
+
+  HOST_DEVICE_DECORATORS
+  std::size_t total_size() const { return _s0; }
 
 #ifdef __NVCC__
   __device__
@@ -575,6 +584,9 @@ class ArrayView2D {
   std::size_t s0() const { return _s0; }
 
   HOST_DEVICE_DECORATORS
+  std::size_t total_size() const { return _s1 * _s0; }
+
+  HOST_DEVICE_DECORATORS
   ArrayView1D<Where, T> operator[](unsigned i1) const {
     assert(i1 < _s1);
     return ArrayView1D<Where, T>(_s0, _data + i1 * _s0);
@@ -711,6 +723,9 @@ class ArrayView3D {
   std::size_t s1() const { return _s1; }
   HOST_DEVICE_DECORATORS
   std::size_t s0() const { return _s0; }
+
+  HOST_DEVICE_DECORATORS
+  std::size_t total_size() const { return _s2 * _s1 * _s0; }
 
   HOST_DEVICE_DECORATORS
   ArrayView2D<Where, T> operator[](unsigned i2) const {
@@ -856,6 +871,9 @@ class ArrayView4D {
   std::size_t s1() const { return _s1; }
   HOST_DEVICE_DECORATORS
   std::size_t s0() const { return _s0; }
+
+  HOST_DEVICE_DECORATORS
+  std::size_t total_size() const { return _s3 * _s2 * _s1 * _s0; }
 
   HOST_DEVICE_DECORATORS
   ArrayView3D<Where, T> operator[](unsigned i3) const {
@@ -1008,6 +1026,9 @@ class ArrayView5D {
   std::size_t s1() const { return _s1; }
   HOST_DEVICE_DECORATORS
   std::size_t s0() const { return _s0; }
+
+  HOST_DEVICE_DECORATORS
+  std::size_t total_size() const { return _s4 * _s3 * _s2 * _s1 * _s0; }
 
   HOST_DEVICE_DECORATORS
   ArrayView4D<Where, T> operator[](unsigned i4) const {
