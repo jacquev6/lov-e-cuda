@@ -391,6 +391,10 @@ class ArrayView1D<Host, T> {
   HOST_DEVICE_DECORATORS
   T* data() const { return _data; }
 
+  void fill_with_zeros() const {
+    Host::memreset<T>(total_size(), _data);
+  }
+
   // Clonable
   template<typename WhereTo>
   Array1D<WhereTo, typename std::remove_const<T>::type> clone_to() const;
@@ -451,6 +455,10 @@ class ArrayView1D<Device, T> {
   HOST_DEVICE_DECORATORS
   T* data() const { return _data; }
 
+  void fill_with_zeros() const {
+    Device::memreset<T>(total_size(), _data);
+  }
+
   // Clonable
   template<typename WhereTo>
   Array1D<WhereTo, typename std::remove_const<T>::type> clone_to() const;
@@ -509,6 +517,10 @@ class Array1D : public ArrayView1D<Where, const T> {
   T& operator[](unsigned i0) const {
     assert(i0 < this->_s0);
     return *(data() + i0);
+  }
+
+  void fill_with_zeros() const {
+    Where::template memreset<T>(this->total_size(), data());
   }
 
   // Not copyable
@@ -617,6 +629,10 @@ class ArrayView2D {
   HOST_DEVICE_DECORATORS
   T* data() const { return _data; }
 
+  void fill_with_zeros() const {
+    Where::template memreset<T>(total_size(), data());
+  }
+
   // Clonable
   template<typename WhereTo>
   Array2D<WhereTo, typename std::remove_const<T>::type> clone_to() const;
@@ -677,6 +693,10 @@ class Array2D : public ArrayView2D<Where, const T> {
     assert(i1 < this->_s1);
     return ArrayView1D<Where, T>(
       this->_s0, data() + i1 * this->_s0);
+  }
+
+  void fill_with_zeros() const {
+    Where::template memreset<T>(this->total_size(), data());
   }
 
   // Not copyable
@@ -781,6 +801,10 @@ class ArrayView3D {
   HOST_DEVICE_DECORATORS
   T* data() const { return _data; }
 
+  void fill_with_zeros() const {
+    Where::template memreset<T>(total_size(), data());
+  }
+
   // Clonable
   template<typename WhereTo>
   Array3D<WhereTo, typename std::remove_const<T>::type> clone_to() const;
@@ -843,6 +867,10 @@ class Array3D : public ArrayView3D<Where, const T> {
     assert(i2 < this->_s2);
     return ArrayView2D<Where, T>(
       this->_s1, this->_s0, data() + i2 * this->_s1 * this->_s0);
+  }
+
+  void fill_with_zeros() const {
+    Where::template memreset<T>(this->total_size(), data());
   }
 
   // Not copyable
@@ -952,6 +980,10 @@ class ArrayView4D {
   HOST_DEVICE_DECORATORS
   T* data() const { return _data; }
 
+  void fill_with_zeros() const {
+    Where::template memreset<T>(total_size(), data());
+  }
+
   // Clonable
   template<typename WhereTo>
   Array4D<WhereTo, typename std::remove_const<T>::type> clone_to() const;
@@ -1016,6 +1048,10 @@ class Array4D : public ArrayView4D<Where, const T> {
     assert(i3 < this->_s3);
     return ArrayView3D<Where, T>(
       this->_s2, this->_s1, this->_s0, data() + i3 * this->_s2 * this->_s1 * this->_s0);
+  }
+
+  void fill_with_zeros() const {
+    Where::template memreset<T>(this->total_size(), data());
   }
 
   // Not copyable
@@ -1130,6 +1166,10 @@ class ArrayView5D {
   HOST_DEVICE_DECORATORS
   T* data() const { return _data; }
 
+  void fill_with_zeros() const {
+    Where::template memreset<T>(total_size(), data());
+  }
+
   // Clonable
   template<typename WhereTo>
   Array5D<WhereTo, typename std::remove_const<T>::type> clone_to() const;
@@ -1196,6 +1236,10 @@ class Array5D : public ArrayView5D<Where, const T> {
     assert(i4 < this->_s4);
     return ArrayView4D<Where, T>(
       this->_s3, this->_s2, this->_s1, this->_s0, data() + i4 * this->_s3 * this->_s2 * this->_s1 * this->_s0);
+  }
+
+  void fill_with_zeros() const {
+    Where::template memreset<T>(this->total_size(), data());
   }
 
   // Not copyable
