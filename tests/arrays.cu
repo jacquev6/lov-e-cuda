@@ -13,7 +13,7 @@ TEST(HostArrayOnHostTest, AllocateZeroed) {
 
 TEST(HostArrayOnHostTest, Assign) {
   Array2D<Host, int> a1(3, 4, uninitialized);
-  const int* data = a1.data_for_legacy_use();
+  const int* data = a1.data();
   Array2D<Host, int> a2(1, 1, uninitialized);
 
   // Movable
@@ -27,17 +27,17 @@ TEST(HostArrayOnHostTest, Assign) {
   // 'a1' has been emptied
   EXPECT_EQ(a1.s1(), 0);
   EXPECT_EQ(a1.s0(), 0);
-  EXPECT_EQ(a1.data_for_legacy_use(), nullptr);
+  EXPECT_EQ(a1.data(), nullptr);
 
   // 'a2' now owns the data
   EXPECT_EQ(a2.s1(), 3);
   EXPECT_EQ(a2.s0(), 4);
-  EXPECT_EQ(a2.data_for_legacy_use(), data);
+  EXPECT_EQ(a2.data(), data);
 }
 
 TEST(HostArrayOnHostTest, MoveConstruct) {
   Array2D<Host, int> a1(3, 4, uninitialized);
-  const int* data = a1.data_for_legacy_use();
+  const int* data = a1.data();
 
   // Movable
   Array2D<Host, int> a2(std::move(a1));
@@ -50,12 +50,12 @@ TEST(HostArrayOnHostTest, MoveConstruct) {
   // 'a1' has been emptied
   EXPECT_EQ(a1.s1(), 0);
   EXPECT_EQ(a1.s0(), 0);
-  EXPECT_EQ(a1.data_for_legacy_use(), nullptr);
+  EXPECT_EQ(a1.data(), nullptr);
 
   // 'a2' now owns the data
   EXPECT_EQ(a2.s1(), 3);
   EXPECT_EQ(a2.s0(), 4);
-  EXPECT_EQ(a2.data_for_legacy_use(), data);
+  EXPECT_EQ(a2.data(), data);
 }
 
 TEST(HostArrayOnHostTest, CloneToHost) {
@@ -68,7 +68,7 @@ TEST(HostArrayOnHostTest, CloneToHost) {
   // 'a1' and 'a2' each own their own data
   EXPECT_EQ(a2.s1(), 3);
   EXPECT_EQ(a2.s0(), 4);
-  EXPECT_NE(a2.data_for_legacy_use(), a1.data_for_legacy_use());
+  EXPECT_NE(a2.data(), a1.data());
   EXPECT_EQ(a2[0][0], 42);
   EXPECT_EQ(a2[2][3], 65);
 }
@@ -93,7 +93,7 @@ TEST(HostArrayOnHostTest, CloneToDevice) {
 
 TEST(DeviceArrayOnHostTest, Assign) {
   Array2D<Device, int> a1(3, 4, uninitialized);
-  const int* data = a1.data_for_legacy_use();
+  const int* data = a1.data();
   Array2D<Device, int> a2(1, 1, uninitialized);
 
   // Movable
@@ -107,17 +107,17 @@ TEST(DeviceArrayOnHostTest, Assign) {
   // 'a1' has been emptied
   EXPECT_EQ(a1.s1(), 0);
   EXPECT_EQ(a1.s0(), 0);
-  EXPECT_EQ(a1.data_for_legacy_use(), nullptr);
+  EXPECT_EQ(a1.data(), nullptr);
 
   // 'a2' now owns the data
   EXPECT_EQ(a2.s1(), 3);
   EXPECT_EQ(a2.s0(), 4);
-  EXPECT_EQ(a2.data_for_legacy_use(), data);
+  EXPECT_EQ(a2.data(), data);
 }
 
 TEST(DeviceArrayOnHostTest, MoveConstruct) {
   Array2D<Device, int> a1(3, 4, uninitialized);
-  const int* data = a1.data_for_legacy_use();
+  const int* data = a1.data();
 
   // Movable
   Array2D<Device, int> a2(std::move(a1));
@@ -130,12 +130,12 @@ TEST(DeviceArrayOnHostTest, MoveConstruct) {
   // 'a1' has been emptied
   EXPECT_EQ(a1.s1(), 0);
   EXPECT_EQ(a1.s0(), 0);
-  EXPECT_EQ(a1.data_for_legacy_use(), nullptr);
+  EXPECT_EQ(a1.data(), nullptr);
 
   // 'a2' now owns the data
   EXPECT_EQ(a2.s1(), 3);
   EXPECT_EQ(a2.s0(), 4);
-  EXPECT_EQ(a2.data_for_legacy_use(), data);
+  EXPECT_EQ(a2.data(), data);
 }
 
 __global__ void kernel_DeviceArrayOnHostTest_CloneToHost(ArrayView2D<Device, int> a1) {
@@ -176,7 +176,7 @@ TEST(DeviceArrayOnHostTest, CloneToDevice) {
   // 'a1' and 'a2' each own their own data
   EXPECT_EQ(a2.s1(), 3);
   EXPECT_EQ(a2.s0(), 4);
-  EXPECT_NE(a2.data_for_legacy_use(), a1.data_for_legacy_use());
+  EXPECT_NE(a2.data(), a1.data());
   kernel_HostArrayOnHostTest_CloneToDevice_2<<<1, 1>>>(a2);
 }
 

@@ -316,13 +316,13 @@ class ArrayView1D<Anywhere, T> {
   // Generalized copy constructor and operator
   template<typename U>
   HOST_DEVICE_DECORATORS
-  ArrayView1D(const ArrayView1D<Anywhere, U>& o) : _s0(o.s0()), _data(o.data_for_legacy_use()) {}
+  ArrayView1D(const ArrayView1D<Anywhere, U>& o) : _s0(o.s0()), _data(o.data()) {}
 
   template<typename U>
   HOST_DEVICE_DECORATORS
   ArrayView1D& operator=(const ArrayView1D<Anywhere, U>& o) {
     _s0 = o.s0();
-    _data = o.data_for_legacy_use();
+    _data = o.data();
     return *this;
   }
 
@@ -337,7 +337,7 @@ class ArrayView1D<Anywhere, T> {
   }
 
   HOST_DEVICE_DECORATORS
-  T* data_for_legacy_use() const { return _data; }
+  T* data() const { return _data; }
 
  private:
   std::size_t _s0;
@@ -358,13 +358,13 @@ class ArrayView1D<Host, T> {
   // Generalized copy constructor and operator
   template<typename U>
   HOST_DEVICE_DECORATORS
-  ArrayView1D(const ArrayView1D<Host, U>& o) : _s0(o.s0()), _data(o.data_for_legacy_use()) {}
+  ArrayView1D(const ArrayView1D<Host, U>& o) : _s0(o.s0()), _data(o.data()) {}
 
   template<typename U>
   HOST_DEVICE_DECORATORS
   ArrayView1D& operator=(const ArrayView1D<Host, U>& o) {
     _s0 = o.s0();
-    _data = o.data_for_legacy_use();
+    _data = o.data();
     return *this;
   }
 
@@ -385,7 +385,7 @@ class ArrayView1D<Host, T> {
   }
 
   HOST_DEVICE_DECORATORS
-  T* data_for_legacy_use() const { return _data; }
+  T* data() const { return _data; }
 
   // Clonable
   template<typename WhereTo>
@@ -410,13 +410,13 @@ class ArrayView1D<Device, T> {
   // Generalized copy constructor and operator
   template<typename U>
   HOST_DEVICE_DECORATORS
-  ArrayView1D(const ArrayView1D<Device, U>& o) : _s0(o.s0()), _data(o.data_for_legacy_use()) {}
+  ArrayView1D(const ArrayView1D<Device, U>& o) : _s0(o.s0()), _data(o.data()) {}
 
   template<typename U>
   HOST_DEVICE_DECORATORS
   ArrayView1D& operator=(const ArrayView1D<Device, U>& o) {
     _s0 = o.s0();
-    _data = o.data_for_legacy_use();
+    _data = o.data();
     return *this;
   }
 
@@ -440,7 +440,7 @@ class ArrayView1D<Device, T> {
 #endif
 
   HOST_DEVICE_DECORATORS
-  T* data_for_legacy_use() const { return _data; }
+  T* data() const { return _data; }
 
   // Clonable
   template<typename WhereTo>
@@ -461,7 +461,7 @@ void copy(ArrayView1D<WhereFrom, T> src, ArrayView1D<WhereTo, typename std::remo
   assert(dst.s0() == src.s0());
 
   From<WhereFrom>::template To<WhereTo>::template copy(
-    src.s0(), src.data_for_legacy_use(), dst.data_for_legacy_use());
+    src.s0(), src.data(), dst.data());
 }
 
 template<typename Where, typename T>
@@ -550,14 +550,14 @@ class ArrayView2D {
   template<typename U>
   HOST_DEVICE_DECORATORS
   ArrayView2D(const ArrayView2D<Where, U>& o) :
-    _s1(o.s1()), _s0(o.s0()), _data(o.data_for_legacy_use()) {}
+    _s1(o.s1()), _s0(o.s0()), _data(o.data()) {}
 
   template<typename U>
   HOST_DEVICE_DECORATORS
   ArrayView2D& operator=(const ArrayView2D<Where, U>& o) {
     _s1 = o.s1();
     _s0 = o.s0();
-    _data = o.data_for_legacy_use();
+    _data = o.data();
     return *this;
   }
 
@@ -581,7 +581,7 @@ class ArrayView2D {
   }
 
   HOST_DEVICE_DECORATORS
-  T* data_for_legacy_use() const { return _data; }
+  T* data() const { return _data; }
 
   // Clonable
   template<typename WhereTo>
@@ -601,7 +601,7 @@ void copy(ArrayView2D<WhereFrom, T> src, ArrayView2D<WhereTo, typename std::remo
   assert(dst.s0() == src.s0());
 
   From<WhereFrom>::template To<WhereTo>::template copy(
-    src.s1() * src.s0(), src.data_for_legacy_use(), dst.data_for_legacy_use());
+    src.s1() * src.s0(), src.data(), dst.data());
 }
 
 template<typename Where, typename T>
@@ -685,7 +685,7 @@ class ArrayView3D {
   template<typename U>
   HOST_DEVICE_DECORATORS
   ArrayView3D(const ArrayView3D<Where, U>& o) :
-    _s2(o.s2()), _s1(o.s1()), _s0(o.s0()), _data(o.data_for_legacy_use()) {}
+    _s2(o.s2()), _s1(o.s1()), _s0(o.s0()), _data(o.data()) {}
 
   template<typename U>
   HOST_DEVICE_DECORATORS
@@ -693,7 +693,7 @@ class ArrayView3D {
     _s2 = o.s2();
     _s1 = o.s1();
     _s0 = o.s0();
-    _data = o.data_for_legacy_use();
+    _data = o.data();
     return *this;
   }
 
@@ -719,7 +719,7 @@ class ArrayView3D {
   }
 
   HOST_DEVICE_DECORATORS
-  T* data_for_legacy_use() const { return _data; }
+  T* data() const { return _data; }
 
   // Clonable
   template<typename WhereTo>
@@ -741,7 +741,7 @@ void copy(ArrayView3D<WhereFrom, T> src, ArrayView3D<WhereTo, typename std::remo
   assert(dst.s0() == src.s0());
 
   From<WhereFrom>::template To<WhereTo>::template copy(
-    src.s2() * src.s1() * src.s0(), src.data_for_legacy_use(), dst.data_for_legacy_use());
+    src.s2() * src.s1() * src.s0(), src.data(), dst.data());
 }
 
 template<typename Where, typename T>
@@ -827,7 +827,7 @@ class ArrayView4D {
   template<typename U>
   HOST_DEVICE_DECORATORS
   ArrayView4D(const ArrayView4D<Where, U>& o) :
-    _s3(o.s3()), _s2(o.s2()), _s1(o.s1()), _s0(o.s0()), _data(o.data_for_legacy_use()) {}
+    _s3(o.s3()), _s2(o.s2()), _s1(o.s1()), _s0(o.s0()), _data(o.data()) {}
 
   template<typename U>
   HOST_DEVICE_DECORATORS
@@ -836,7 +836,7 @@ class ArrayView4D {
     _s2 = o.s2();
     _s1 = o.s1();
     _s0 = o.s0();
-    _data = o.data_for_legacy_use();
+    _data = o.data();
     return *this;
   }
 
@@ -864,7 +864,7 @@ class ArrayView4D {
   }
 
   HOST_DEVICE_DECORATORS
-  T* data_for_legacy_use() const { return _data; }
+  T* data() const { return _data; }
 
   // Clonable
   template<typename WhereTo>
@@ -888,7 +888,7 @@ void copy(ArrayView4D<WhereFrom, T> src, ArrayView4D<WhereTo, typename std::remo
   assert(dst.s0() == src.s0());
 
   From<WhereFrom>::template To<WhereTo>::template copy(
-    src.s3() * src.s2() * src.s1() * src.s0(), src.data_for_legacy_use(), dst.data_for_legacy_use());
+    src.s3() * src.s2() * src.s1() * src.s0(), src.data(), dst.data());
 }
 
 template<typename Where, typename T>
@@ -976,7 +976,7 @@ class ArrayView5D {
   template<typename U>
   HOST_DEVICE_DECORATORS
   ArrayView5D(const ArrayView5D<Where, U>& o) :
-    _s4(o.s4()), _s3(o.s3()), _s2(o.s2()), _s1(o.s1()), _s0(o.s0()), _data(o.data_for_legacy_use()) {}
+    _s4(o.s4()), _s3(o.s3()), _s2(o.s2()), _s1(o.s1()), _s0(o.s0()), _data(o.data()) {}
 
   template<typename U>
   HOST_DEVICE_DECORATORS
@@ -986,7 +986,7 @@ class ArrayView5D {
     _s2 = o.s2();
     _s1 = o.s1();
     _s0 = o.s0();
-    _data = o.data_for_legacy_use();
+    _data = o.data();
     return *this;
   }
 
@@ -1016,7 +1016,7 @@ class ArrayView5D {
   }
 
   HOST_DEVICE_DECORATORS
-  T* data_for_legacy_use() const { return _data; }
+  T* data() const { return _data; }
 
   // Clonable
   template<typename WhereTo>
@@ -1042,7 +1042,7 @@ void copy(ArrayView5D<WhereFrom, T> src, ArrayView5D<WhereTo, typename std::remo
   assert(dst.s0() == src.s0());
 
   From<WhereFrom>::template To<WhereTo>::template copy(
-    src.s4() * src.s3() * src.s2() * src.s1() * src.s0(), src.data_for_legacy_use(), dst.data_for_legacy_use());
+    src.s4() * src.s3() * src.s2() * src.s1() * src.s0(), src.data(), dst.data());
 }
 
 template<typename Where, typename T>

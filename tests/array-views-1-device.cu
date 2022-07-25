@@ -37,7 +37,7 @@ TEST_F(DeviceArrayView1DTest, GetSizes) {
 }
 
 TEST_F(DeviceArrayView1DTest, Data) {
-  EXPECT_EQ(array.data_for_legacy_use(), memory);
+  EXPECT_EQ(array.data(), memory);
 }
 
 __global__ void kernel_DeviceArrayView1DTest_Index(ArrayView1D<Device, int> array) {
@@ -92,7 +92,7 @@ __global__ void kernel_DeviceArrayView1DTest_Assign(ArrayView1D<Device, int> arr
   other_array = array;
 
   assert(other_array.s0() == array.s0());
-  assert(other_array.data_for_legacy_use() == array.data_for_legacy_use());
+  assert(other_array.data() == array.data());
   assert(other_array[3] == 9);
 
   // Can't be assigned if dimensions don't match
@@ -110,7 +110,7 @@ TEST_F(DeviceArrayView1DTest, Assign) {
   // Can be assigned (with "non-owning pointer" semantics)
   other_array = array;
   EXPECT_EQ(other_array.s0(), s0);
-  EXPECT_EQ(other_array.data_for_legacy_use(), memory);
+  EXPECT_EQ(other_array.data(), memory);
 
   // Can't be assigned if dimensions don't match
   #if EXPECT_COMPILE_ERROR == __LINE__

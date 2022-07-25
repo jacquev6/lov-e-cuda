@@ -32,7 +32,7 @@ TEST_F(ArrayView2DTest, GetSizes) {
 }
 
 TEST_F(ArrayView2DTest, Data) {
-  EXPECT_EQ(array.data_for_legacy_use(), memory);
+  EXPECT_EQ(array.data(), memory);
 }
 
 TEST_F(ArrayView2DTest, Index) {
@@ -83,7 +83,7 @@ TEST_F(ArrayView2DTest, Assign) {
   other_array = array;
   EXPECT_EQ(other_array.s1(), s1);
   EXPECT_EQ(other_array.s0(), s0);
-  EXPECT_EQ(other_array.data_for_legacy_use(), memory);
+  EXPECT_EQ(other_array.data(), memory);
   EXPECT_EQ(other_array[3][1], 30);
 
   // Can't be assigned if dimensions don't match

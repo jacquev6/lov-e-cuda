@@ -340,7 +340,7 @@ The specializations of `memset` are required only for `zeroed`, and the speciali
 <summary>Access to raw pointer</summary>
 
 For some legacy uses and/or for integrating with third-party libraries, you may need the actual pointer to the underlying data.
-You can get it with `a.data_for_legacy_use()`.
+You can get it with `a.data()`.
 Don't overuse it; you should be able to avoid that most of the time.
 
 </details>
