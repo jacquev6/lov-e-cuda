@@ -115,8 +115,28 @@ TEST_F(ArrayView2DTest, CopyToArrayView) {
   ArrayView2D<Host, int> other_array(s1, s0, other_memory);
   other_array[0][0] = 42;
   other_array[3][2] = 42;
+  ArrayView2D<Host, const int> const_other_array(s1, s0, other_memory);
 
   copy(array, other_array);
+  #if EXPECT_COMPILE_ERROR == __LINE__
+    copy(array, const_other_array);
+  #endif
+
+  EXPECT_EQ(other_array[0][0], 0);
+  EXPECT_EQ(other_array[3][2], 33);
+}
+
+TEST_F(ArrayView2DTest, CopyToRefOfArrayView) {
+  int other_memory[s1 * s0];  // NOLINT(runtime/arrays)
+  ArrayView2D<Host, int> other_array(s1, s0, other_memory);
+  other_array[0][0] = 42;
+  other_array[3][2] = 42;
+  ArrayView2D<Host, const int> const_other_array(s1, s0, other_memory);
+
+  copy(array, ref(other_array));
+  #if EXPECT_COMPILE_ERROR == __LINE__
+    copy(array, ref(const_other_array));
+  #endif
 
   EXPECT_EQ(other_array[0][0], 0);
   EXPECT_EQ(other_array[3][2], 33);
@@ -127,7 +147,7 @@ TEST_F(ArrayView2DTest, CopyToArray) {
   other_array[0][0] = 42;
   other_array[3][2] = 42;
 
-  copy(array, other_array);
+  copy(array, ref(other_array));
 
   EXPECT_EQ(other_array[0][0], 0);
   EXPECT_EQ(other_array[3][2], 33);
@@ -150,7 +170,7 @@ TEST_F(ArrayView2DTest, CopyConst) {
   other_array[0][0] = 42;
   other_array[3][2] = 42;
 
-  copy(const_array, other_array);
+  copy(const_array, ref(other_array));
 
   EXPECT_EQ(other_array[0][0], 0);
   EXPECT_EQ(other_array[3][2], 33);

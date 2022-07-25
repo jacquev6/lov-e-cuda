@@ -47,7 +47,7 @@ void dwell_color(int* r, int* g, int* b, int dwell) {
 }
 
 
-void save_image(const char* filename, ArrayView2D<Host, int> dwells) {
+void save_image(const char* filename, ArrayView2D<Host, const int> dwells) {
   const unsigned h = dwells.s1();
   const unsigned w = dwells.s0();
 
@@ -164,7 +164,7 @@ int main(int, char*[]) {
   const Grid grid = grid::make(w, h);
 
   const double t1 = omp_get_wtime();
-  mandelbrot_k<<<LOVE_CONFIG(grid)>>>(d_dwells, complex(-1.5, -1), complex(0.5, 1));
+  mandelbrot_k<<<LOVE_CONFIG(grid)>>>(ref(d_dwells), complex(-1.5, -1), complex(0.5, 1));
   check_last_cuda_error();
 
   const double t2 = omp_get_wtime();

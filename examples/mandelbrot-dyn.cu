@@ -286,7 +286,8 @@ int main(int, char*[]) {
   const dim3 blocks(INIT_SUBDIV, INIT_SUBDIV);
 
   const double t1 = omp_get_wtime();
-  mandelbrot_block_k<<<blocks, threads>>>(d_dwells, w, h, complex(-1.5, -1), complex(0.5, 1), 0, 0, w / INIT_SUBDIV, 1);
+  mandelbrot_block_k<<<blocks, threads>>>(
+    d_dwells, w, h, complex(-1.5, -1), complex(0.5, 1), 0, 0, w / INIT_SUBDIV, 1);
   cucheck(cudaDeviceSynchronize());
   const double t2 = omp_get_wtime();
 

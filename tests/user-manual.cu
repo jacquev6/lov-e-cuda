@@ -68,7 +68,7 @@ TEST(UserManual, GoodMultiDimArray) {
   // END GoodMultiDimArray-alloc
 
   // BEGIN GoodMultiDimArray-call
-  kernel<<<1, 1>>>(data);
+  kernel<<<1, 1>>>(ref(data));
   check_last_cuda_error();
   // END GoodMultiDimArray-call
 }
@@ -111,7 +111,7 @@ TEST(UserManual, HostArray) {
   // END HostArray-clone
 
   // BEGIN HostArray-copy
-  copy<Host, Device>(a, b);
+  copy<Host, Device>(a, ref(b));
   // END HostArray-copy
 }
 

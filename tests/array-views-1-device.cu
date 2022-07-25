@@ -154,7 +154,7 @@ __global__ void kernel_DeviceArrayView1DTest_Copy_1(ArrayView1D<Device, int> oth
   other_array[4] = 42;
 }
 
-__global__ void kernel_DeviceArrayView1DTest_Copy_2(ArrayView1D<Device, int> other_array) {
+__global__ void kernel_DeviceArrayView1DTest_Copy_2(ArrayView1D<Device, const int> other_array) {
   assert(other_array[0] == 0);
   assert(other_array[4] == 12);
 }

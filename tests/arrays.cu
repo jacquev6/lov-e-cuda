@@ -145,7 +145,7 @@ __global__ void kernel_DeviceArrayOnHostTest_CloneToHost(ArrayView2D<Device, int
 
 TEST(DeviceArrayOnHostTest, CloneToHost) {
   Array2D<Device, int> a1(3, 4, uninitialized);
-  kernel_DeviceArrayOnHostTest_CloneToHost<<<1, 1>>>(a1);
+  kernel_DeviceArrayOnHostTest_CloneToHost<<<1, 1>>>(ref(a1));
   check_last_cuda_error();
 
   Array2D<Host, int> a2 = a1.clone_to<Host>();
@@ -161,14 +161,14 @@ __global__ void kernel_DeviceArrayOnHostTest_CloneToDevice_1(ArrayView2D<Device,
   a1[2][3] = 65;
 }
 
-__global__ void kernel_HostArrayOnHostTest_CloneToDevice_2(ArrayView2D<Device, int> a2) {
+__global__ void kernel_HostArrayOnHostTest_CloneToDevice_2(ArrayView2D<Device, const int> a2) {
   assert(a2[0][0] == 42);
   assert(a2[2][3] == 65);
 }
 
 TEST(DeviceArrayOnHostTest, CloneToDevice) {
   Array2D<Device, int> a1(3, 4, uninitialized);
-  kernel_DeviceArrayOnHostTest_CloneToDevice_1<<<1, 1>>>(a1);
+  kernel_DeviceArrayOnHostTest_CloneToDevice_1<<<1, 1>>>(ref(a1));
   check_last_cuda_error();
 
   Array2D<Device, int> a2 = a1.clone_to<Device>();

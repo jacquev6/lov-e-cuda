@@ -345,8 +345,6 @@ class ArrayView1D<Anywhere, T> {
  private:
   std::size_t _s0;
   T* _data;
-
-  friend class Array1D<Anywhere, T>;
 };
 
 template<typename T>
@@ -403,7 +401,7 @@ class ArrayView1D<Host, T> {
   std::size_t _s0;
   T* _data;
 
-  friend class Array1D<Host, T>;
+  friend class Array1D<Host, typename std::remove_const<T>::type>;
 };
 
 template<typename T>
@@ -463,11 +461,8 @@ class ArrayView1D<Device, T> {
   std::size_t _s0;
   T* _data;
 
-  friend class Array1D<Device, T>;
+  friend class Array1D<Device, typename std::remove_const<T>::type>;
 };
-
-
-// BEGIN GENERATED SECTION: arrays-and-array-views
 
 template<typename WhereFrom, typename WhereTo, typename T>
 void copy(ArrayView1D<WhereFrom, T> src, ArrayView1D<WhereTo, typename std::remove_const<T>::type> dst) {
@@ -478,12 +473,12 @@ void copy(ArrayView1D<WhereFrom, T> src, ArrayView1D<WhereTo, typename std::remo
 }
 
 template<typename Where, typename T>
-class Array1D : public ArrayView1D<Where, T> {
+class Array1D : public ArrayView1D<Where, const T> {
  public:
   // RAII
   template<typename W = Where, typename = typename std::enable_if<!W::can_be_allocated_on_device>::type>
   Array1D(std::size_t s0, Uninitialized) :
-    ArrayView1D<Where, T>(s0, Where::template alloc<T>(s0))
+    ArrayView1D<Where, const T>(s0, Where::template alloc<T>(s0))
   {}
 
   template<
@@ -493,16 +488,27 @@ class Array1D : public ArrayView1D<Where, T> {
   >
   HOST_DEVICE_DECORATORS
   Array1D(std::size_t s0, Uninitialized) :
-    ArrayView1D<Where, T>(s0, Where::template alloc<T>(s0))
+    ArrayView1D<Where, const T>(s0, Where::template alloc<T>(s0))
   {}
 
   Array1D(std::size_t s0, Zeroed) :
-    ArrayView1D<Where, T>(s0, Where::template alloc_zeroed<T>(s0))
+    ArrayView1D<Where, const T>(s0, Where::template alloc_zeroed<T>(s0))
   {}
 
   HOST_DEVICE_DECORATORS
   ~Array1D() {
     free();
+  }
+
+  // Accessors
+  HOST_DEVICE_DECORATORS
+  T* data() const { return const_cast<T*>(this->_data); }
+
+  // @todo Fix decorators: forbid dereferencing host memory on host and vice versa
+  HOST_DEVICE_DECORATORS
+  T& operator[](unsigned i0) const {
+    assert(i0 < this->_s0);
+    return *(data() + i0);
   }
 
   // Not copyable
@@ -511,14 +517,14 @@ class Array1D : public ArrayView1D<Where, T> {
 
   // But movable
   HOST_DEVICE_DECORATORS
-  Array1D(Array1D&& o) : ArrayView1D<Where, T>(o) {
+  Array1D(Array1D&& o) : ArrayView1D<Where, const T>(o) {
     o._s0 = 0;
     o._data = nullptr;
   }
   HOST_DEVICE_DECORATORS
   Array1D& operator=(Array1D&& o) {
     free();
-    static_cast<ArrayView1D<Where, T>&>(*this) = o;
+    static_cast<ArrayView1D<Where, const T>&>(*this) = o;
     o._s0 = 0;
     o._data = nullptr;
     return *this;
@@ -527,15 +533,25 @@ class Array1D : public ArrayView1D<Where, T> {
  private:
   HOST_DEVICE_DECORATORS
   void free() {
-    Where::free(this->_data);
+    Where::free(data());
   }
 };
+
+template<typename Where, typename T>
+ArrayView1D<Where, T> ref(const Array1D<Where, T>& a) {
+  return ArrayView1D<Where, T>(a.s0(), a.data());
+}
+
+template<typename Where, typename T>
+ArrayView1D<Where, T> ref(const ArrayView1D<Where, T>& a) {
+  return a;
+}
 
 template<typename T>
 template<typename WhereTo>
 Array1D<WhereTo, typename std::remove_const<T>::type> ArrayView1D<Host, T>::clone_to() const {
   Array1D<WhereTo, typename std::remove_const<T>::type> dst(this->s0(), uninitialized);
-  copy(*this, dst);  // NOLINT(build/include_what_you_use)
+  copy(*this, ref(dst));  // NOLINT(build/include_what_you_use)
   return dst;
 }
 
@@ -543,9 +559,11 @@ template<typename T>
 template<typename WhereTo>
 Array1D<WhereTo, typename std::remove_const<T>::type> ArrayView1D<Device, T>::clone_to() const {
   Array1D<WhereTo, typename std::remove_const<T>::type> dst(this->s0(), uninitialized);
-  copy(*this, dst);  // NOLINT(build/include_what_you_use)
+  copy(*this, ref(dst));  // NOLINT(build/include_what_you_use)
   return dst;
 }
+
+// BEGIN GENERATED SECTION: arrays-and-array-views
 
 template<typename Where, typename T> class Array2D;
 
@@ -610,7 +628,7 @@ class ArrayView2D {
   std::size_t _s0;
   T* _data;
 
-  friend class Array2D<Where, T>;
+  friend class Array2D<Where, typename std::remove_const<T>::type>;
 };
 
 template<typename WhereFrom, typename WhereTo, typename T>
@@ -623,12 +641,12 @@ void copy(ArrayView2D<WhereFrom, T> src, ArrayView2D<WhereTo, typename std::remo
 }
 
 template<typename Where, typename T>
-class Array2D : public ArrayView2D<Where, T> {
+class Array2D : public ArrayView2D<Where, const T> {
  public:
   // RAII
   template<typename W = Where, typename = typename std::enable_if<!W::can_be_allocated_on_device>::type>
   Array2D(std::size_t s1, std::size_t s0, Uninitialized) :
-    ArrayView2D<Where, T>(s1, s0, Where::template alloc<T>(s1 * s0))
+    ArrayView2D<Where, const T>(s1, s0, Where::template alloc<T>(s1 * s0))
   {}
 
   template<
@@ -638,16 +656,27 @@ class Array2D : public ArrayView2D<Where, T> {
   >
   HOST_DEVICE_DECORATORS
   Array2D(std::size_t s1, std::size_t s0, Uninitialized) :
-    ArrayView2D<Where, T>(s1, s0, Where::template alloc<T>(s1 * s0))
+    ArrayView2D<Where, const T>(s1, s0, Where::template alloc<T>(s1 * s0))
   {}
 
   Array2D(std::size_t s1, std::size_t s0, Zeroed) :
-    ArrayView2D<Where, T>(s1, s0, Where::template alloc_zeroed<T>(s1 * s0))
+    ArrayView2D<Where, const T>(s1, s0, Where::template alloc_zeroed<T>(s1 * s0))
   {}
 
   HOST_DEVICE_DECORATORS
   ~Array2D() {
     free();
+  }
+
+  // Accessors
+  HOST_DEVICE_DECORATORS
+  T* data() const { return const_cast<T*>(this->_data); }
+
+  HOST_DEVICE_DECORATORS
+  ArrayView1D<Where, T> operator[](unsigned i1) const {
+    assert(i1 < this->_s1);
+    return ArrayView1D<Where, T>(
+      this->_s0, data() + i1 * this->_s0);
   }
 
   // Not copyable
@@ -656,7 +685,7 @@ class Array2D : public ArrayView2D<Where, T> {
 
   // But movable
   HOST_DEVICE_DECORATORS
-  Array2D(Array2D&& o) : ArrayView2D<Where, T>(o) {
+  Array2D(Array2D&& o) : ArrayView2D<Where, const T>(o) {
     o._s1 = 0;
     o._s0 = 0;
     o._data = nullptr;
@@ -664,7 +693,7 @@ class Array2D : public ArrayView2D<Where, T> {
   HOST_DEVICE_DECORATORS
   Array2D& operator=(Array2D&& o) {
     free();
-    static_cast<ArrayView2D<Where, T>&>(*this) = o;
+    static_cast<ArrayView2D<Where, const T>&>(*this) = o;
     o._s1 = 0;
     o._s0 = 0;
     o._data = nullptr;
@@ -674,16 +703,26 @@ class Array2D : public ArrayView2D<Where, T> {
  private:
   HOST_DEVICE_DECORATORS
   void free() {
-    Where::free(this->_data);
+    Where::free(data());
   }
 };
+
+template<typename Where, typename T>
+ArrayView2D<Where, T> ref(const Array2D<Where, T>& a) {
+  return ArrayView2D<Where, T>(a.s1(), a.s0(), a.data());
+}
+
+template<typename Where, typename T>
+ArrayView2D<Where, T> ref(const ArrayView2D<Where, T>& a) {
+  return a;
+}
 
 template<typename WhereFrom, typename T>
 template<typename WhereTo>
 Array2D<WhereTo, typename std::remove_const<T>::type> ArrayView2D<WhereFrom, T>::clone_to() const {
   Array2D<WhereTo, typename std::remove_const<T>::type> dst(
     this->s1(), this->s0(), uninitialized);
-  copy(*this, dst);  // NOLINT(build/include_what_you_use)
+  copy(*this, ref(dst));  // NOLINT(build/include_what_you_use)
   return dst;
 }
 
@@ -754,7 +793,7 @@ class ArrayView3D {
   std::size_t _s0;
   T* _data;
 
-  friend class Array3D<Where, T>;
+  friend class Array3D<Where, typename std::remove_const<T>::type>;
 };
 
 template<typename WhereFrom, typename WhereTo, typename T>
@@ -768,12 +807,12 @@ void copy(ArrayView3D<WhereFrom, T> src, ArrayView3D<WhereTo, typename std::remo
 }
 
 template<typename Where, typename T>
-class Array3D : public ArrayView3D<Where, T> {
+class Array3D : public ArrayView3D<Where, const T> {
  public:
   // RAII
   template<typename W = Where, typename = typename std::enable_if<!W::can_be_allocated_on_device>::type>
   Array3D(std::size_t s2, std::size_t s1, std::size_t s0, Uninitialized) :
-    ArrayView3D<Where, T>(s2, s1, s0, Where::template alloc<T>(s2 * s1 * s0))
+    ArrayView3D<Where, const T>(s2, s1, s0, Where::template alloc<T>(s2 * s1 * s0))
   {}
 
   template<
@@ -783,16 +822,27 @@ class Array3D : public ArrayView3D<Where, T> {
   >
   HOST_DEVICE_DECORATORS
   Array3D(std::size_t s2, std::size_t s1, std::size_t s0, Uninitialized) :
-    ArrayView3D<Where, T>(s2, s1, s0, Where::template alloc<T>(s2 * s1 * s0))
+    ArrayView3D<Where, const T>(s2, s1, s0, Where::template alloc<T>(s2 * s1 * s0))
   {}
 
   Array3D(std::size_t s2, std::size_t s1, std::size_t s0, Zeroed) :
-    ArrayView3D<Where, T>(s2, s1, s0, Where::template alloc_zeroed<T>(s2 * s1 * s0))
+    ArrayView3D<Where, const T>(s2, s1, s0, Where::template alloc_zeroed<T>(s2 * s1 * s0))
   {}
 
   HOST_DEVICE_DECORATORS
   ~Array3D() {
     free();
+  }
+
+  // Accessors
+  HOST_DEVICE_DECORATORS
+  T* data() const { return const_cast<T*>(this->_data); }
+
+  HOST_DEVICE_DECORATORS
+  ArrayView2D<Where, T> operator[](unsigned i2) const {
+    assert(i2 < this->_s2);
+    return ArrayView2D<Where, T>(
+      this->_s1, this->_s0, data() + i2 * this->_s1 * this->_s0);
   }
 
   // Not copyable
@@ -801,7 +851,7 @@ class Array3D : public ArrayView3D<Where, T> {
 
   // But movable
   HOST_DEVICE_DECORATORS
-  Array3D(Array3D&& o) : ArrayView3D<Where, T>(o) {
+  Array3D(Array3D&& o) : ArrayView3D<Where, const T>(o) {
     o._s2 = 0;
     o._s1 = 0;
     o._s0 = 0;
@@ -810,7 +860,7 @@ class Array3D : public ArrayView3D<Where, T> {
   HOST_DEVICE_DECORATORS
   Array3D& operator=(Array3D&& o) {
     free();
-    static_cast<ArrayView3D<Where, T>&>(*this) = o;
+    static_cast<ArrayView3D<Where, const T>&>(*this) = o;
     o._s2 = 0;
     o._s1 = 0;
     o._s0 = 0;
@@ -821,16 +871,26 @@ class Array3D : public ArrayView3D<Where, T> {
  private:
   HOST_DEVICE_DECORATORS
   void free() {
-    Where::free(this->_data);
+    Where::free(data());
   }
 };
+
+template<typename Where, typename T>
+ArrayView3D<Where, T> ref(const Array3D<Where, T>& a) {
+  return ArrayView3D<Where, T>(a.s2(), a.s1(), a.s0(), a.data());
+}
+
+template<typename Where, typename T>
+ArrayView3D<Where, T> ref(const ArrayView3D<Where, T>& a) {
+  return a;
+}
 
 template<typename WhereFrom, typename T>
 template<typename WhereTo>
 Array3D<WhereTo, typename std::remove_const<T>::type> ArrayView3D<WhereFrom, T>::clone_to() const {
   Array3D<WhereTo, typename std::remove_const<T>::type> dst(
     this->s2(), this->s1(), this->s0(), uninitialized);
-  copy(*this, dst);  // NOLINT(build/include_what_you_use)
+  copy(*this, ref(dst));  // NOLINT(build/include_what_you_use)
   return dst;
 }
 
@@ -905,7 +965,7 @@ class ArrayView4D {
   std::size_t _s0;
   T* _data;
 
-  friend class Array4D<Where, T>;
+  friend class Array4D<Where, typename std::remove_const<T>::type>;
 };
 
 template<typename WhereFrom, typename WhereTo, typename T>
@@ -920,12 +980,12 @@ void copy(ArrayView4D<WhereFrom, T> src, ArrayView4D<WhereTo, typename std::remo
 }
 
 template<typename Where, typename T>
-class Array4D : public ArrayView4D<Where, T> {
+class Array4D : public ArrayView4D<Where, const T> {
  public:
   // RAII
   template<typename W = Where, typename = typename std::enable_if<!W::can_be_allocated_on_device>::type>
   Array4D(std::size_t s3, std::size_t s2, std::size_t s1, std::size_t s0, Uninitialized) :
-    ArrayView4D<Where, T>(s3, s2, s1, s0, Where::template alloc<T>(s3 * s2 * s1 * s0))
+    ArrayView4D<Where, const T>(s3, s2, s1, s0, Where::template alloc<T>(s3 * s2 * s1 * s0))
   {}
 
   template<
@@ -935,16 +995,27 @@ class Array4D : public ArrayView4D<Where, T> {
   >
   HOST_DEVICE_DECORATORS
   Array4D(std::size_t s3, std::size_t s2, std::size_t s1, std::size_t s0, Uninitialized) :
-    ArrayView4D<Where, T>(s3, s2, s1, s0, Where::template alloc<T>(s3 * s2 * s1 * s0))
+    ArrayView4D<Where, const T>(s3, s2, s1, s0, Where::template alloc<T>(s3 * s2 * s1 * s0))
   {}
 
   Array4D(std::size_t s3, std::size_t s2, std::size_t s1, std::size_t s0, Zeroed) :
-    ArrayView4D<Where, T>(s3, s2, s1, s0, Where::template alloc_zeroed<T>(s3 * s2 * s1 * s0))
+    ArrayView4D<Where, const T>(s3, s2, s1, s0, Where::template alloc_zeroed<T>(s3 * s2 * s1 * s0))
   {}
 
   HOST_DEVICE_DECORATORS
   ~Array4D() {
     free();
+  }
+
+  // Accessors
+  HOST_DEVICE_DECORATORS
+  T* data() const { return const_cast<T*>(this->_data); }
+
+  HOST_DEVICE_DECORATORS
+  ArrayView3D<Where, T> operator[](unsigned i3) const {
+    assert(i3 < this->_s3);
+    return ArrayView3D<Where, T>(
+      this->_s2, this->_s1, this->_s0, data() + i3 * this->_s2 * this->_s1 * this->_s0);
   }
 
   // Not copyable
@@ -953,7 +1024,7 @@ class Array4D : public ArrayView4D<Where, T> {
 
   // But movable
   HOST_DEVICE_DECORATORS
-  Array4D(Array4D&& o) : ArrayView4D<Where, T>(o) {
+  Array4D(Array4D&& o) : ArrayView4D<Where, const T>(o) {
     o._s3 = 0;
     o._s2 = 0;
     o._s1 = 0;
@@ -963,7 +1034,7 @@ class Array4D : public ArrayView4D<Where, T> {
   HOST_DEVICE_DECORATORS
   Array4D& operator=(Array4D&& o) {
     free();
-    static_cast<ArrayView4D<Where, T>&>(*this) = o;
+    static_cast<ArrayView4D<Where, const T>&>(*this) = o;
     o._s3 = 0;
     o._s2 = 0;
     o._s1 = 0;
@@ -975,16 +1046,26 @@ class Array4D : public ArrayView4D<Where, T> {
  private:
   HOST_DEVICE_DECORATORS
   void free() {
-    Where::free(this->_data);
+    Where::free(data());
   }
 };
+
+template<typename Where, typename T>
+ArrayView4D<Where, T> ref(const Array4D<Where, T>& a) {
+  return ArrayView4D<Where, T>(a.s3(), a.s2(), a.s1(), a.s0(), a.data());
+}
+
+template<typename Where, typename T>
+ArrayView4D<Where, T> ref(const ArrayView4D<Where, T>& a) {
+  return a;
+}
 
 template<typename WhereFrom, typename T>
 template<typename WhereTo>
 Array4D<WhereTo, typename std::remove_const<T>::type> ArrayView4D<WhereFrom, T>::clone_to() const {
   Array4D<WhereTo, typename std::remove_const<T>::type> dst(
     this->s3(), this->s2(), this->s1(), this->s0(), uninitialized);
-  copy(*this, dst);  // NOLINT(build/include_what_you_use)
+  copy(*this, ref(dst));  // NOLINT(build/include_what_you_use)
   return dst;
 }
 
@@ -1063,7 +1144,7 @@ class ArrayView5D {
   std::size_t _s0;
   T* _data;
 
-  friend class Array5D<Where, T>;
+  friend class Array5D<Where, typename std::remove_const<T>::type>;
 };
 
 template<typename WhereFrom, typename WhereTo, typename T>
@@ -1079,12 +1160,12 @@ void copy(ArrayView5D<WhereFrom, T> src, ArrayView5D<WhereTo, typename std::remo
 }
 
 template<typename Where, typename T>
-class Array5D : public ArrayView5D<Where, T> {
+class Array5D : public ArrayView5D<Where, const T> {
  public:
   // RAII
   template<typename W = Where, typename = typename std::enable_if<!W::can_be_allocated_on_device>::type>
   Array5D(std::size_t s4, std::size_t s3, std::size_t s2, std::size_t s1, std::size_t s0, Uninitialized) :
-    ArrayView5D<Where, T>(s4, s3, s2, s1, s0, Where::template alloc<T>(s4 * s3 * s2 * s1 * s0))
+    ArrayView5D<Where, const T>(s4, s3, s2, s1, s0, Where::template alloc<T>(s4 * s3 * s2 * s1 * s0))
   {}
 
   template<
@@ -1094,16 +1175,27 @@ class Array5D : public ArrayView5D<Where, T> {
   >
   HOST_DEVICE_DECORATORS
   Array5D(std::size_t s4, std::size_t s3, std::size_t s2, std::size_t s1, std::size_t s0, Uninitialized) :
-    ArrayView5D<Where, T>(s4, s3, s2, s1, s0, Where::template alloc<T>(s4 * s3 * s2 * s1 * s0))
+    ArrayView5D<Where, const T>(s4, s3, s2, s1, s0, Where::template alloc<T>(s4 * s3 * s2 * s1 * s0))
   {}
 
   Array5D(std::size_t s4, std::size_t s3, std::size_t s2, std::size_t s1, std::size_t s0, Zeroed) :
-    ArrayView5D<Where, T>(s4, s3, s2, s1, s0, Where::template alloc_zeroed<T>(s4 * s3 * s2 * s1 * s0))
+    ArrayView5D<Where, const T>(s4, s3, s2, s1, s0, Where::template alloc_zeroed<T>(s4 * s3 * s2 * s1 * s0))
   {}
 
   HOST_DEVICE_DECORATORS
   ~Array5D() {
     free();
+  }
+
+  // Accessors
+  HOST_DEVICE_DECORATORS
+  T* data() const { return const_cast<T*>(this->_data); }
+
+  HOST_DEVICE_DECORATORS
+  ArrayView4D<Where, T> operator[](unsigned i4) const {
+    assert(i4 < this->_s4);
+    return ArrayView4D<Where, T>(
+      this->_s3, this->_s2, this->_s1, this->_s0, data() + i4 * this->_s3 * this->_s2 * this->_s1 * this->_s0);
   }
 
   // Not copyable
@@ -1112,7 +1204,7 @@ class Array5D : public ArrayView5D<Where, T> {
 
   // But movable
   HOST_DEVICE_DECORATORS
-  Array5D(Array5D&& o) : ArrayView5D<Where, T>(o) {
+  Array5D(Array5D&& o) : ArrayView5D<Where, const T>(o) {
     o._s4 = 0;
     o._s3 = 0;
     o._s2 = 0;
@@ -1123,7 +1215,7 @@ class Array5D : public ArrayView5D<Where, T> {
   HOST_DEVICE_DECORATORS
   Array5D& operator=(Array5D&& o) {
     free();
-    static_cast<ArrayView5D<Where, T>&>(*this) = o;
+    static_cast<ArrayView5D<Where, const T>&>(*this) = o;
     o._s4 = 0;
     o._s3 = 0;
     o._s2 = 0;
@@ -1136,16 +1228,26 @@ class Array5D : public ArrayView5D<Where, T> {
  private:
   HOST_DEVICE_DECORATORS
   void free() {
-    Where::free(this->_data);
+    Where::free(data());
   }
 };
+
+template<typename Where, typename T>
+ArrayView5D<Where, T> ref(const Array5D<Where, T>& a) {
+  return ArrayView5D<Where, T>(a.s4(), a.s3(), a.s2(), a.s1(), a.s0(), a.data());
+}
+
+template<typename Where, typename T>
+ArrayView5D<Where, T> ref(const ArrayView5D<Where, T>& a) {
+  return a;
+}
 
 template<typename WhereFrom, typename T>
 template<typename WhereTo>
 Array5D<WhereTo, typename std::remove_const<T>::type> ArrayView5D<WhereFrom, T>::clone_to() const {
   Array5D<WhereTo, typename std::remove_const<T>::type> dst(
     this->s4(), this->s3(), this->s2(), this->s1(), this->s0(), uninitialized);
-  copy(*this, dst);  // NOLINT(build/include_what_you_use)
+  copy(*this, ref(dst));  // NOLINT(build/include_what_you_use)
   return dst;
 }
 

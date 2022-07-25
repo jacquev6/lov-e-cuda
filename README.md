@@ -106,8 +106,8 @@ All performance below have been measured on code compiled with `-O3 -DNDEBUG`.
 
 | Example | Without *Lov-e-cuda* | With *Lov-e-cuda* |
 | --- | --- | --- |
-| Mandelbrot<br>(static parallelism) | 219 ms *i.e.* 1226 Mpix/s | 186 ms *i.e.* 1439 Mpix/s |
-| Mandelbrot<br>(dynamic parallelism) | 44 ms *i.e.* 6158 Mpix/s | 39 ms *i.e.* 6882 Mpix/s |
+| Mandelbrot<br>(static parallelism) | 190 ms *i.e.* 1411 Mpix/s | 190 ms *i.e.* 1410 Mpix/s |
+| Mandelbrot<br>(dynamic parallelism) | 43 ms *i.e.* 6174 Mpix/s | 42 ms *i.e.* 6319 Mpix/s |
 
 <!-- END GENERATED SECTION: examples-performance-table -->
 
@@ -173,7 +173,7 @@ You can allocate an `Array2D`,
 
 <!-- BEGIN GENERATED SECTION: user-manual-snippet(GoodMultiDimArray-call) -->
 
-    kernel<<<1, 1>>>(data);
+    kernel<<<1, 1>>>(ref(data));
     check_last_cuda_error();
 
 <!-- END GENERATED SECTION: user-manual-snippet(GoodMultiDimArray-call) -->
@@ -272,7 +272,7 @@ Or `copy` the data between two existing arrays:
 
 <!-- BEGIN GENERATED SECTION: user-manual-snippet(HostArray-copy) -->
 
-    copy<Host, Device>(a, b);
+    copy<Host, Device>(a, ref(b));
 
 <!-- END GENERATED SECTION: user-manual-snippet(HostArray-copy) -->
 

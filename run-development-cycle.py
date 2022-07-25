@@ -139,7 +139,7 @@ class ArraysAndArrayViewSection:
 
     def generate(self):
         first = True
-        for n in range(1, 6):
+        for n in range(2, 6):
             if first:
                 first = False
             else:
@@ -218,7 +218,7 @@ class ArraysAndArrayViewSection:
                 yield f"  std::size_t _s{d};"
             yield "  T* _data;"
             yield ""
-            yield f"  friend class Array{n}D<Where, T>;"
+            yield f"  friend class Array{n}D<Where, typename std::remove_const<T>::type>;"
             yield "};"
 
             yield ""
@@ -235,12 +235,12 @@ class ArraysAndArrayViewSection:
         yield ""
 
         yield "template<typename Where, typename T>"
-        yield f"class Array{n}D : public ArrayView{n}D<Where, T> {{"
+        yield f"class Array{n}D : public ArrayView{n}D<Where, const T> {{"
         yield " public:"
         yield "  // RAII"
         yield "  template<typename W = Where, typename = typename std::enable_if<!W::can_be_allocated_on_device>::type>"
         yield f"  Array{n}D({sep('std::size_t s{d}')}, Uninitialized) :"
-        yield f"    ArrayView{n}D<Where, T>({sep('s{d}')}, Where::template alloc<T>({sep('s{d}', ' * ')}))"
+        yield f"    ArrayView{n}D<Where, const T>({sep('s{d}')}, Where::template alloc<T>({sep('s{d}', ' * ')}))"
         yield "  {}"
         yield ""
         yield "  template<"
@@ -250,16 +250,27 @@ class ArraysAndArrayViewSection:
         yield "  >"
         yield "  HOST_DEVICE_DECORATORS"
         yield f"  Array{n}D({sep('std::size_t s{d}')}, Uninitialized) :"
-        yield f"    ArrayView{n}D<Where, T>({sep('s{d}')}, Where::template alloc<T>({sep('s{d}', ' * ')}))"
+        yield f"    ArrayView{n}D<Where, const T>({sep('s{d}')}, Where::template alloc<T>({sep('s{d}', ' * ')}))"
         yield "  {}"
         yield ""
         yield f"  Array{n}D({sep('std::size_t s{d}')}, Zeroed) :"
-        yield f"    ArrayView{n}D<Where, T>({sep('s{d}')}, Where::template alloc_zeroed<T>({sep('s{d}', ' * ')}))"
+        yield f"    ArrayView{n}D<Where, const T>({sep('s{d}')}, Where::template alloc_zeroed<T>({sep('s{d}', ' * ')}))"
         yield "  {}"
         yield ""
         yield "  HOST_DEVICE_DECORATORS"
         yield f"  ~Array{n}D() {{"
         yield "    free();"
+        yield "  }"
+        yield ""
+        yield "  // Accessors"
+        yield "  HOST_DEVICE_DECORATORS"
+        yield "  T* data() const { return const_cast<T*>(this->_data); }"
+        yield ""
+        yield "  HOST_DEVICE_DECORATORS"
+        yield f"  ArrayView{n-1}D<Where, T> operator[](unsigned i{n-1}) const {{"
+        yield f"    assert(i{n-1} < this->_s{n-1});"
+        yield f"    return ArrayView{n-1}D<Where, T>("
+        yield f"      {sep('this->_s{d}', ', ', lower_ds)}, data() + i{n-1} * {sep('this->_s{d}', ' * ', lower_ds)});"
         yield "  }"
         yield ""
         yield "  // Not copyable"
@@ -268,7 +279,7 @@ class ArraysAndArrayViewSection:
         yield ""
         yield "  // But movable"
         yield "  HOST_DEVICE_DECORATORS"
-        yield f"  Array{n}D(Array{n}D&& o) : ArrayView{n}D<Where, T>(o) {{"
+        yield f"  Array{n}D(Array{n}D&& o) : ArrayView{n}D<Where, const T>(o) {{"
         for d in ds:
             yield f"    o._s{d} = 0;"
         yield "    o._data = nullptr;"
@@ -276,7 +287,7 @@ class ArraysAndArrayViewSection:
         yield "  HOST_DEVICE_DECORATORS"
         yield f"  Array{n}D& operator=(Array{n}D&& o) {{"
         yield "    free();"
-        yield f"    static_cast<ArrayView{n}D<Where, T>&>(*this) = o;"
+        yield f"    static_cast<ArrayView{n}D<Where, const T>&>(*this) = o;"
         for d in ds:
             yield f"    o._s{d} = 0;"
         yield "    o._data = nullptr;"
@@ -286,9 +297,23 @@ class ArraysAndArrayViewSection:
         yield " private:"
         yield "  HOST_DEVICE_DECORATORS"
         yield "  void free() {"
-        yield "    Where::free(this->_data);"
+        yield "    Where::free(data());"
         yield "  }"
         yield "};"
+
+        yield ""
+
+        yield "template<typename Where, typename T>"
+        yield f"ArrayView{n}D<Where, T> ref(const Array{n}D<Where, T>& a) {{"
+        yield f"  return ArrayView{n}D<Where, T>({sep('a.s{d}()')}, a.data());"
+        yield "}"
+
+        yield ""
+
+        yield "template<typename Where, typename T>"
+        yield f"ArrayView{n}D<Where, T> ref(const ArrayView{n}D<Where, T>& a) {{"
+        yield f"  return a;"
+        yield "}"
 
         yield ""
 
@@ -297,7 +322,7 @@ class ArraysAndArrayViewSection:
             yield "template<typename WhereTo>"
             yield f"Array{n}D<WhereTo, typename std::remove_const<T>::type> ArrayView{n}D<Host, T>::clone_to() const {{"
             yield f"  Array{n}D<WhereTo, typename std::remove_const<T>::type> dst(this->s0(), uninitialized);"
-            yield "  copy(*this, dst);  // NOLINT(build/include_what_you_use)"
+            yield "  copy(*this, ref(dst));  // NOLINT(build/include_what_you_use)"
             yield "  return dst;"
             yield "}"
             yield ""
@@ -305,7 +330,7 @@ class ArraysAndArrayViewSection:
             yield "template<typename WhereTo>"
             yield f"Array{n}D<WhereTo, typename std::remove_const<T>::type> ArrayView{n}D<Device, T>::clone_to() const {{"
             yield f"  Array{n}D<WhereTo, typename std::remove_const<T>::type> dst(this->s0(), uninitialized);"
-            yield "  copy(*this, dst);  // NOLINT(build/include_what_you_use)"
+            yield "  copy(*this, ref(dst));  // NOLINT(build/include_what_you_use)"
             yield "  return dst;"
             yield "}"
         else:
@@ -314,7 +339,7 @@ class ArraysAndArrayViewSection:
             yield f"Array{n}D<WhereTo, typename std::remove_const<T>::type> ArrayView{n}D<WhereFrom, T>::clone_to() const {{"
             yield f"  Array{n}D<WhereTo, typename std::remove_const<T>::type> dst("
             yield f"    {sep('this->s{d}()')}, uninitialized);"
-            yield "  copy(*this, dst);  // NOLINT(build/include_what_you_use)"
+            yield "  copy(*this, ref(dst));  // NOLINT(build/include_what_you_use)"
             yield "  return dst;"
             yield "}"
 
