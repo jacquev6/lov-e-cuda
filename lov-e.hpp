@@ -564,11 +564,13 @@ class Array1D : public ArrayView1D<Where, const T> {
 };
 
 template<typename Where, typename T>
+HOST_DEVICE_DECORATORS
 ArrayView1D<Where, T> ref(const Array1D<Where, T>& a) {
   return ArrayView1D<Where, T>(a.s0(), a.data());
 }
 
 template<typename Where, typename T>
+HOST_DEVICE_DECORATORS
 ArrayView1D<Where, T> ref(const ArrayView1D<Where, T>& a) {
   return a;
 }
@@ -740,11 +742,13 @@ class Array2D : public ArrayView2D<Where, const T> {
 };
 
 template<typename Where, typename T>
+HOST_DEVICE_DECORATORS
 ArrayView2D<Where, T> ref(const Array2D<Where, T>& a) {
   return ArrayView2D<Where, T>(a.s1(), a.s0(), a.data());
 }
 
 template<typename Where, typename T>
+HOST_DEVICE_DECORATORS
 ArrayView2D<Where, T> ref(const ArrayView2D<Where, T>& a) {
   return a;
 }
@@ -916,11 +920,13 @@ class Array3D : public ArrayView3D<Where, const T> {
 };
 
 template<typename Where, typename T>
+HOST_DEVICE_DECORATORS
 ArrayView3D<Where, T> ref(const Array3D<Where, T>& a) {
   return ArrayView3D<Where, T>(a.s2(), a.s1(), a.s0(), a.data());
 }
 
 template<typename Where, typename T>
+HOST_DEVICE_DECORATORS
 ArrayView3D<Where, T> ref(const ArrayView3D<Where, T>& a) {
   return a;
 }
@@ -1099,11 +1105,13 @@ class Array4D : public ArrayView4D<Where, const T> {
 };
 
 template<typename Where, typename T>
+HOST_DEVICE_DECORATORS
 ArrayView4D<Where, T> ref(const Array4D<Where, T>& a) {
   return ArrayView4D<Where, T>(a.s3(), a.s2(), a.s1(), a.s0(), a.data());
 }
 
 template<typename Where, typename T>
+HOST_DEVICE_DECORATORS
 ArrayView4D<Where, T> ref(const ArrayView4D<Where, T>& a) {
   return a;
 }
@@ -1289,11 +1297,13 @@ class Array5D : public ArrayView5D<Where, const T> {
 };
 
 template<typename Where, typename T>
+HOST_DEVICE_DECORATORS
 ArrayView5D<Where, T> ref(const Array5D<Where, T>& a) {
   return ArrayView5D<Where, T>(a.s4(), a.s3(), a.s2(), a.s1(), a.s0(), a.data());
 }
 
 template<typename Where, typename T>
+HOST_DEVICE_DECORATORS
 ArrayView5D<Where, T> ref(const ArrayView5D<Where, T>& a) {
   return a;
 }

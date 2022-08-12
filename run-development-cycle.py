@@ -333,6 +333,7 @@ class ArraysAndArrayViewSection:
             yield ""
 
             yield "template<typename Where, typename T>"
+            yield "HOST_DEVICE_DECORATORS"
             yield f"ArrayView{n}D<Where, T> ref(const Array{n}D<Where, T>& a) {{"
             yield f"  return ArrayView{n}D<Where, T>({sep('a.s{d}()')}, a.data());"
             yield "}"
@@ -340,6 +341,7 @@ class ArraysAndArrayViewSection:
             yield ""
 
             yield "template<typename Where, typename T>"
+            yield "HOST_DEVICE_DECORATORS"
             yield f"ArrayView{n}D<Where, T> ref(const ArrayView{n}D<Where, T>& a) {{"
             yield f"  return a;"
             yield "}"
