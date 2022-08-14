@@ -37,12 +37,12 @@ TEST_F(CopyTest, HostToHostOnHost) {
 }
 
 __device__ void CopyTest_HostToHostOnDevice(
-  Array1D<Host, int>& h1,
-  Array2D<Host, int>& h2,
-  Array5D<Host, int>& h5,
-  Array1D<Host, int>& c1,
-  Array2D<Host, int>& c2,
-  Array5D<Host, int>& c5
+  Array1D<Host, int>& h1,  // NOLINT(runtime/references)
+  Array2D<Host, int>& h2,  // NOLINT(runtime/references)
+  Array5D<Host, int>& h5,  // NOLINT(runtime/references)
+  Array1D<Host, int>& c1,  // NOLINT(runtime/references)
+  Array2D<Host, int>& c2,  // NOLINT(runtime/references)
+  Array5D<Host, int>& c5  // NOLINT(runtime/references)
 ) {
   #if EXPECT_COMPILE_ERROR == __LINE__
     copy(h1, ref(c1));
@@ -85,12 +85,12 @@ TEST_F(CopyTest, HostToDeviceOnHost) {
 }
 
 __device__ void CopyTest_HostToDeviceOnDevice(
-  Array1D<Host, int>& h1,
-  Array2D<Host, int>& h2,
-  Array5D<Host, int>& h5,
-  Array1D<Device, int>& c1,
-  Array2D<Device, int>& c2,
-  Array5D<Device, int>& c5
+  Array1D<Host, int>& h1,  // NOLINT(runtime/references)
+  Array2D<Host, int>& h2,  // NOLINT(runtime/references)
+  Array5D<Host, int>& h5,  // NOLINT(runtime/references)
+  Array1D<Device, int>& c1,  // NOLINT(runtime/references)
+  Array2D<Device, int>& c2,  // NOLINT(runtime/references)
+  Array5D<Device, int>& c5  // NOLINT(runtime/references)
 ) {
   #if EXPECT_COMPILE_ERROR == __LINE__
     copy(h1, ref(c1));
@@ -123,12 +123,12 @@ TEST_F(CopyTest, DeviceToHostOnHost) {
 }
 
 __device__ void CopyTest_DeviceToHostOnDevice(
-  Array1D<Device, int>& d1,
-  Array2D<Device, int>& d2,
-  Array5D<Device, int>& d5,
-  Array1D<Host, int>& c1,
-  Array2D<Host, int>& c2,
-  Array5D<Host, int>& c5
+  Array1D<Device, int>& d1,  // NOLINT(runtime/references)
+  Array2D<Device, int>& d2,  // NOLINT(runtime/references)
+  Array5D<Device, int>& d5,  // NOLINT(runtime/references)
+  Array1D<Host, int>& c1,  // NOLINT(runtime/references)
+  Array2D<Host, int>& c2,  // NOLINT(runtime/references)
+  Array5D<Host, int>& c5  // NOLINT(runtime/references)
 ) {
   #if EXPECT_COMPILE_ERROR == __LINE__
     copy(d1, ref(c1));
@@ -182,12 +182,12 @@ TEST_F(CopyTest, DeviceToDeviceOnHost) {
 }
 
 __device__ void kernel_CopyTest_DeviceToDeviceOnDevice(
-  Array1D<Device, int>& d1,
-  Array2D<Device, int>& d2,
-  Array5D<Device, int>& d5,
-  Array1D<Device, int>& c1,
-  Array2D<Device, int>& c2,
-  Array5D<Device, int>& c5
+  Array1D<Device, int>& d1,  // NOLINT(runtime/references)
+  Array2D<Device, int>& d2,  // NOLINT(runtime/references)
+  Array5D<Device, int>& d5,  // NOLINT(runtime/references)
+  Array1D<Device, int>& c1,  // NOLINT(runtime/references)
+  Array2D<Device, int>& c2,  // NOLINT(runtime/references)
+  Array5D<Device, int>& c5  // NOLINT(runtime/references)
 ) {
   #if EXPECT_COMPILE_ERROR == __LINE__
     copy(d1, ref(c1));
@@ -243,9 +243,9 @@ TEST_F(CloneTest, HostToHostOnHost) {
 }
 
 __device__ void CloneTest_HostToHostOnDevice(
-  Array1D<Host, int>& h1,
-  Array2D<Host, int>& h2,
-  Array5D<Host, int>& h5
+  Array1D<Host, int>& h1,  // NOLINT(runtime/references)
+  Array2D<Host, int>& h2,  // NOLINT(runtime/references)
+  Array5D<Host, int>& h5  // NOLINT(runtime/references)
 ) {
   #if EXPECT_COMPILE_ERROR == __LINE__
     h1.clone();
@@ -293,9 +293,9 @@ TEST_F(CloneTest, HostToDeviceOnHost) {
 }
 
 __device__ void CloneTest_HostToDeviceOnDevice(
-  Array1D<Host, int>& h1,
-  Array2D<Host, int>& h2,
-  Array5D<Host, int>& h5
+  Array1D<Host, int>& h1,  // NOLINT(runtime/references)
+  Array2D<Host, int>& h2,  // NOLINT(runtime/references)
+  Array5D<Host, int>& h5  // NOLINT(runtime/references)
 ) {
   #if EXPECT_COMPILE_ERROR == __LINE__
     h1.clone_to<Device>();
@@ -333,9 +333,9 @@ TEST_F(CloneTest, DeviceToHostOnHost) {
 }
 
 __device__ void CloneTest_DeviceToHostOnDevice(
-  Array1D<Device, int>& d1,
-  Array2D<Device, int>& d2,
-  Array5D<Device, int>& d5
+  Array1D<Device, int>& d1,  // NOLINT(runtime/references)
+  Array2D<Device, int>& d2,  // NOLINT(runtime/references)
+  Array5D<Device, int>& d5  // NOLINT(runtime/references)
 ) {
   #if EXPECT_COMPILE_ERROR == __LINE__
     d1.clone_to<Host>();
@@ -386,9 +386,9 @@ TEST_F(CloneTest, DeviceToDeviceOnHost) {
 }
 
 __device__ void kernel_CloneTest_DeviceToDeviceOnDevice(
-  Array1D<Device, int>& d1,
-  Array2D<Device, int>& d2,
-  Array5D<Device, int>& d5
+  Array1D<Device, int>& d1,  // NOLINT(runtime/references)
+  Array2D<Device, int>& d2,  // NOLINT(runtime/references)
+  Array5D<Device, int>& d5  // NOLINT(runtime/references)
 ) {
   #if EXPECT_COMPILE_ERROR == __LINE__
     d1.clone();
