@@ -21,9 +21,11 @@ if test -f build/nvidia-docker-runtime.ok || docker run --rm --gpus all nvidia/c
 then
   touch build/nvidia-docker-runtime.ok
 else
-  echo "************************************************************************"
-  echo "** The NVidia Docker runtime does not seem to be properly configured. **"
-  echo "************************************************************************"
+  echo "*************************************************************************************"
+  echo "** FATAL ERROR: The NVidia Docker runtime does not seem to be properly configured. **"
+  echo "*************************************************************************************"
+  echo "Details:"
+  docker run --rm --gpus all nvidia/cuda:11.2.2-base-ubuntu20.04 nvidia-smi
   exit 1
 fi
 
