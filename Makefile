@@ -111,12 +111,18 @@ examples: $(example_sentinel_files)
 # Ah the pain of enabling "all" 'g++' warnings... https://stackoverflow.com/a/11720263/905845
 gcc_flags := -std=c++11 -fopenmp -W -Wall -Wextra -Werror -pedantic -I/usr/local/cuda-10.2/targets/x86_64-linux/include
 
-# Targets:
-# - 52: Vincent's GeForce GTX TITAN X and Laurent's GeForce GTX 980 Ti
-# - 75: Laurent's GeForce RTX 2080 Ti
-# @todo Put targets in a list and generate 'nvcc_targets'
-nvcc_targets := -arch=sm_75 -gencode=arch=compute_52,code=sm_52 -gencode=arch=compute_75,code=sm_75
-nvcc_flags := -std=c++11 -Xcompiler "-fopenmp -W -Wall -Wextra -Werror" $(nvcc_targets)
+# SMs considered:
+# - 30, 35, 37: too many functions were host-only, like e.g. cudaGetErrorName, cudaMalloc
+# - 50:
+# - 52: ok, tested regularly on Vincent's GeForce GTX TITAN X
+# - 53: fails with a few undefined references to 'cudaMalloc', 'cudaGetErrorName', etc.
+# - 60:
+# - 61:
+# - 62: fails like 53
+# - 75:
+# - 80, 86, 87, 90: would require dropping support for CUDA 10
+nvcc_targets := $(foreach version,50 52 60 61 75,-gencode=arch=compute_$(version),code=sm_$(version))
+nvcc_flags := -std=c++11 -Xcompiler "-fopenmp -W -Wall -Wextra -Werror" -arch=sm_75 $(nvcc_targets)
 
 link_flags := -lgtest -lpng
 
