@@ -166,7 +166,7 @@ TEST_F(CopyOnHostTest, CopyHostToHost) {
   From<Host>::To<Host>::copy(count, h1, h2);
   EXPECT_EQ(h2[0], 42);
   EXPECT_EQ(h1[count - 1], 65);
-  check_last_cuda_error();
+  check_last_cuda_error_sync_device();
 }
 
 __global__ void kernel_CopyOnHostTest_CopyHostToDevice(const std::size_t count, const uint16_t* const d1) {
@@ -179,7 +179,7 @@ TEST_F(CopyOnHostTest, CopyHostToDevice) {
   h1[count - 1] = 65;
   From<Host>::To<Device>::copy(count, h1, d1);
   kernel_CopyOnHostTest_CopyHostToDevice<<<1, 1>>>(count, d1);
-  check_last_cuda_error();
+  check_last_cuda_error_sync_device();
 }
 
 __global__ void kernel_CopyOnHostTest_CopyDeviceToHost(const std::size_t count, uint16_t* const d1) {
@@ -189,7 +189,7 @@ __global__ void kernel_CopyOnHostTest_CopyDeviceToHost(const std::size_t count, 
 
 TEST_F(CopyOnHostTest, CopyDeviceToHost) {
   kernel_CopyOnHostTest_CopyDeviceToHost<<<1, 1>>>(count, d1);
-  check_last_cuda_error();
+  check_last_cuda_error_sync_device();
   From<Device>::To<Host>::copy(count, d1, h1);
   EXPECT_EQ(h1[0], 42);
   EXPECT_EQ(h1[count - 1], 65);
@@ -224,7 +224,7 @@ TEST(CloneTest, CloneHostToDevice) {
   h[count - 1] = 65;
   uint16_t* d = From<Host>::To<Device>::clone(count, h);
   kernel_CopyOnHostTest_CopyHostToDevice<<<1, 1>>>(count, d);
-  check_last_cuda_error();
+  check_last_cuda_error_sync_device();
 
   Device::free(d);
   Host::free(h);

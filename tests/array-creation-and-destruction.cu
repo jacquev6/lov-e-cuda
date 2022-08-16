@@ -83,7 +83,7 @@ __global__ void kernel_ArrayCreationTest_HostOnDevice() {
 
 TEST(ArrayCreationTest, HostOnDevice) {
   kernel_ArrayCreationTest_HostOnDevice<<<1, 1>>>();
-  check_last_cuda_error();
+  check_last_cuda_error_sync_device();
 }
 
 __global__ void kernel_ArrayCreationTest_DeviceOnHost(
@@ -167,7 +167,7 @@ TEST(ArrayCreationTest, DeviceOnHost) {
   #endif
 
   kernel_ArrayCreationTest_DeviceOnHost<<<1, 1>>>(u1, u2, u5, z1, z2, z5);
-  check_last_cuda_error();
+  check_last_cuda_error_sync_device();
 }
 
 __global__ void kernel_ArrayCreationTest_DeviceOnDevice() {
@@ -202,5 +202,5 @@ __global__ void kernel_ArrayCreationTest_DeviceOnDevice() {
 
 TEST(ArrayCreationTest, DeviceOnDevice) {
   kernel_ArrayCreationTest_DeviceOnDevice<<<1, 1>>>();
-  check_last_cuda_error();
+  check_last_cuda_error_sync_device();
 }

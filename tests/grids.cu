@@ -101,7 +101,7 @@ __global__ void kernel_1d() {
 TEST(GridTest, Launch1D) {
   auto grid = grid_1d::make(42);
   kernel_1d<<<LOVE_CONFIG(grid)>>>();
-  check_last_cuda_error();
+  check_last_cuda_error_sync_device();
 }
 
 __global__ void kernel_2d() {
@@ -112,7 +112,7 @@ __global__ void kernel_2d() {
 TEST(GridTest, Launch2D) {
   auto grid = grid_2d::make(42, 65);
   kernel_2d<<<LOVE_CONFIG(grid)>>>();
-  check_last_cuda_error();
+  check_last_cuda_error_sync_device();
 }
 
 __global__ void kernel_3d() {
@@ -124,5 +124,5 @@ __global__ void kernel_3d() {
 TEST(GridTest, Launch3D) {
   auto grid = grid_3d::make(42, 65, 53);
   kernel_3d<<<LOVE_CONFIG(grid)>>>();
-  check_last_cuda_error();
+  check_last_cuda_error_sync_device();
 }

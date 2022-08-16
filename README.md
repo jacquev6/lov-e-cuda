@@ -131,7 +131,7 @@ Instead of allocating with `cudaMalloc`,
 <!-- BEGIN GENERATED SECTION: user-manual-snippet(BadMultiDimArray-call) -->
 
     kernel<<<1, 1>>>(data, width, height);
-    check_last_cuda_error();
+    check_last_cuda_error_sync_device();
 
 <!-- END GENERATED SECTION: user-manual-snippet(BadMultiDimArray-call) -->
 
@@ -174,7 +174,7 @@ You can allocate an `Array2D`,
 <!-- BEGIN GENERATED SECTION: user-manual-snippet(GoodMultiDimArray-call) -->
 
     kernel<<<1, 1>>>(ref(data));
-    check_last_cuda_error();
+    check_last_cuda_error_sync_device();
 
 <!-- END GENERATED SECTION: user-manual-snippet(GoodMultiDimArray-call) -->
 

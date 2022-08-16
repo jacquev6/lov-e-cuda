@@ -42,7 +42,7 @@ __global__ void kernel_DeviceAllocOnDeviceTest_AllocateNonZero() {
 
 TEST(DeviceAllocOnDeviceTest, AllocateNonZero) {
   kernel_DeviceAllocOnDeviceTest_AllocateNonZero<<<1, 1>>>();
-  check_last_cuda_error();
+  check_last_cuda_error_sync_device();
 }
 
 __global__ void kernel_DeviceAllocOnDeviceTest_AllocateZero() {
@@ -53,7 +53,7 @@ __global__ void kernel_DeviceAllocOnDeviceTest_AllocateZero() {
 
 TEST(DeviceAllocOnDeviceTest, AllocateZero) {
   kernel_DeviceAllocOnDeviceTest_AllocateZero<<<1, 1>>>();
-  check_last_cuda_error();
+  check_last_cuda_error_sync_device();
 }
 
 __global__ void kernel_UnavalaibleOnDevice() {

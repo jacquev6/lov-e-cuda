@@ -271,7 +271,7 @@ int main(int, char*[]) {
   const double t1 = omp_get_wtime();
   mandelbrot_block_k<<<LOVE_CONFIG(grid)>>>(
     ref(d_dwells), complex(-1.5, -1), complex(0.5, 1), 0, 0, w / INIT_SUBDIV, 1);
-  check_last_cuda_error();
+  check_last_cuda_error_sync_device();
   const double t2 = omp_get_wtime();
 
   Array2D<Host, int> h_dwells = d_dwells.clone_to<Host>();

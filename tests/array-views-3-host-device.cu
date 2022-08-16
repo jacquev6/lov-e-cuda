@@ -62,7 +62,7 @@ TEST(ArrayViewHostDeviceTest, PassToHostDeviceFunction1D) {
 
   Array1D<Device, int> d_a(1, zeroed);
   kernel_ArrayViewHostDeviceTest_PassToHostDeviceFunction1D<<<1, 1>>>(ref(d_a));
-  check_last_cuda_error();
+  check_last_cuda_error_sync_device();
 }
 
 __host__ __device__
@@ -83,7 +83,7 @@ TEST(ArrayViewHostDeviceTest, PassToHostDeviceFunction1DConst) {
 
   Array1D<Device, int> d_a(1, zeroed);
   kernel_ArrayViewHostDeviceTest_PassToHostDeviceFunction1DConst<<<1, 1>>>(ref(d_a));
-  check_last_cuda_error();
+  check_last_cuda_error_sync_device();
 }
 
 __host__ __device__
@@ -104,7 +104,7 @@ TEST(ArrayViewHostDeviceTest, PassToHostDeviceFunction3D) {
 
   Array3D<Device, int> d_a(1, 1, 1, zeroed);
   kernel_ArrayViewHostDeviceTest_PassToHostDeviceFunction3D<<<1, 1>>>(ref(d_a));
-  check_last_cuda_error();
+  check_last_cuda_error_sync_device();
 }
 
 __host__ __device__
@@ -125,5 +125,5 @@ TEST(ArrayViewHostDeviceTest, PassToHostDeviceFunction3DConst) {
 
   Array3D<Device, int> d_a(1, 1, 1, zeroed);
   kernel_ArrayViewHostDeviceTest_PassToHostDeviceFunction3DConst<<<1, 1>>>(ref(d_a));
-  check_last_cuda_error();
+  check_last_cuda_error_sync_device();
 }

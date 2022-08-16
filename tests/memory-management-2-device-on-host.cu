@@ -55,7 +55,7 @@ TEST(DeviceAllocOnHostTest, AllocateZeroed) {
   int* const p = Device::alloc_zeroed<int>(10);
   EXPECT_NE(p, nullptr);
   kernel_DeviceAllocOnHostTest_AllocateZeroed<<<1, 1>>>(p);
-  check_last_cuda_error();
+  check_last_cuda_error_sync_device();
   Device::free(p);
 }
 
@@ -102,7 +102,7 @@ __global__ void kernel_DeviceMemsetOnHostTest_Memset(const std::size_t count, co
 TEST_F(DeviceMemsetOnHostTest, Memset) {
   Device::memset(count, 0xAA, mem);
   kernel_DeviceMemsetOnHostTest_Memset<<<1, 1>>>(count, mem);
-  check_last_cuda_error();
+  check_last_cuda_error_sync_device();
 }
 
 __global__ void kernel_DeviceMemsetOnHostTest_Memreset_1(const std::size_t count, uint16_t* const mem) {
@@ -119,7 +119,7 @@ TEST_F(DeviceMemsetOnHostTest, Memreset) {
   kernel_DeviceMemsetOnHostTest_Memreset_1<<<1, 1>>>(count, mem);
   Device::memreset(count, mem);
   kernel_DeviceMemsetOnHostTest_Memreset_2<<<1, 1>>>(count, mem);
-  check_last_cuda_error();
+  check_last_cuda_error_sync_device();
 }
 
 __global__ void kernel_DeviceMemsetOnHostTest_Memreset_2(const float* const p) {

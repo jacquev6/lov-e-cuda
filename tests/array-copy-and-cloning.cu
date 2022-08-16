@@ -81,7 +81,7 @@ TEST_F(CopyTest, HostToDeviceOnHost) {
   copy(h5, ref(c5));
 
   kernel_CopyTest_HostToDeviceOnHost<<<1, 1>>>(c1, c2, c5);
-  check_last_cuda_error();
+  check_last_cuda_error_sync_device();
 }
 
 __device__ void CopyTest_HostToDeviceOnDevice(
@@ -178,7 +178,7 @@ TEST_F(CopyTest, DeviceToDeviceOnHost) {
   EXPECT_NE(c5.data(), d5.data());
 
   kernel_CopyTest_DeviceToDeviceOnHost<<<1, 1>>>(c1, c2, c5);
-  check_last_cuda_error();
+  check_last_cuda_error_sync_device();
 }
 
 __device__ void kernel_CopyTest_DeviceToDeviceOnDevice(
@@ -289,7 +289,7 @@ TEST_F(CloneTest, HostToDeviceOnHost) {
   EXPECT_EQ(c5.s4(), 5);
 
   kernel_CloneTest_HostToDeviceOnHost<<<1, 1>>>(c1, c2, c5);
-  check_last_cuda_error();
+  check_last_cuda_error_sync_device();
 }
 
 __device__ void CloneTest_HostToDeviceOnDevice(
@@ -382,7 +382,7 @@ TEST_F(CloneTest, DeviceToDeviceOnHost) {
   EXPECT_NE(c5.data(), d5.data());
 
   kernel_CloneTest_DeviceToDeviceOnHost<<<1, 1>>>(c1, c2, c5);
-  check_last_cuda_error();
+  check_last_cuda_error_sync_device();
 }
 
 __device__ void kernel_CloneTest_DeviceToDeviceOnDevice(

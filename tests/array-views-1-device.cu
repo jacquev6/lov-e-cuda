@@ -52,7 +52,7 @@ __global__ void kernel_DeviceArrayView1DTest_Index(ArrayView1D<Device, int> arra
 
 TEST_F(DeviceArrayView1DTest, Index) {
   kernel_DeviceArrayView1DTest_Index<<<1, 1>>>(array);
-  check_last_cuda_error();
+  check_last_cuda_error_sync_device();
 }
 
 __global__ void kernel_DeviceArrayView1DTest_ConvertToConst(ArrayView1D<Device, int> array) {
@@ -75,7 +75,7 @@ __global__ void kernel_DeviceArrayView1DTest_ConvertToConst(ArrayView1D<Device, 
 
 TEST_F(DeviceArrayView1DTest, ConvertToConst) {
   kernel_DeviceArrayView1DTest_ConvertToConst<<<1, 1>>>(array);
-  check_last_cuda_error();
+  check_last_cuda_error_sync_device();
 
   // Can convert to const
   ArrayView1D<Device, const int> const_array(array);
@@ -104,7 +104,7 @@ __global__ void kernel_DeviceArrayView1DTest_Assign(ArrayView1D<Device, int> arr
 
 TEST_F(DeviceArrayView1DTest, Assign) {
   kernel_DeviceArrayView1DTest_Assign<<<1, 1>>>(array);
-  check_last_cuda_error();
+  check_last_cuda_error_sync_device();
 
   ArrayView1D<Device, int> other_array(0, nullptr);
 
@@ -135,7 +135,7 @@ __global__ void kernel_DeviceArrayView1DTest_AssignToConst(ArrayView1D<Device, i
 
 TEST_F(DeviceArrayView1DTest, AssignToConst) {
   kernel_DeviceArrayView1DTest_AssignToConst<<<1, 1>>>(array);
-  check_last_cuda_error();
+  check_last_cuda_error_sync_device();
 
   ArrayView1D<Device, const int> const_a(0, nullptr);
 
@@ -163,12 +163,12 @@ TEST_F(DeviceArrayView1DTest, Copy) {
   int* other_memory = Device::alloc<int>(s0);
   ArrayView1D<Device, int> other_array(s0, other_memory);
   kernel_DeviceArrayView1DTest_Copy_1<<<1, 1>>>(other_array);
-  check_last_cuda_error();
+  check_last_cuda_error_sync_device();
 
   copy(array, other_array);
 
   kernel_DeviceArrayView1DTest_Copy_2<<<1, 1>>>(other_array);
-  check_last_cuda_error();
+  check_last_cuda_error_sync_device();
 
   Device::free(other_memory);
 }
@@ -177,26 +177,26 @@ TEST_F(DeviceArrayView1DTest, CloneTo) {
   Array1D<Device, int> other_array = array.clone_to<Device>();
 
   kernel_DeviceArrayView1DTest_Copy_2<<<1, 1>>>(other_array);
-  check_last_cuda_error();
+  check_last_cuda_error_sync_device();
 }
 
 TEST_F(DeviceArrayView1DTest, Clone) {
   Array1D<Device, int> other_array = array.clone();
 
   kernel_DeviceArrayView1DTest_Copy_2<<<1, 1>>>(other_array);
-  check_last_cuda_error();
+  check_last_cuda_error_sync_device();
 }
 
 TEST_F(DeviceArrayView1DTest, CopyConst) {
   int* other_memory = Device::alloc<int>(s0);
   ArrayView1D<Device, int> other_array(s0, other_memory);
   kernel_DeviceArrayView1DTest_Copy_1<<<1, 1>>>(other_array);
-  check_last_cuda_error();
+  check_last_cuda_error_sync_device();
 
   copy(const_array, other_array);
 
   kernel_DeviceArrayView1DTest_Copy_2<<<1, 1>>>(other_array);
-  check_last_cuda_error();
+  check_last_cuda_error_sync_device();
 
   Device::free(other_memory);
 }
@@ -205,12 +205,12 @@ TEST_F(DeviceArrayView1DTest, CloneToConst) {
   Array1D<Device, int> other_array = const_array.clone_to<Device>();
 
   kernel_DeviceArrayView1DTest_Copy_2<<<1, 1>>>(other_array);
-  check_last_cuda_error();
+  check_last_cuda_error_sync_device();
 }
 
 TEST_F(DeviceArrayView1DTest, CloneConst) {
   Array1D<Device, int> other_array = const_array.clone();
 
   kernel_DeviceArrayView1DTest_Copy_2<<<1, 1>>>(other_array);
-  check_last_cuda_error();
+  check_last_cuda_error_sync_device();
 }

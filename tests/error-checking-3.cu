@@ -11,7 +11,7 @@ __global__ void kernel_assert_false() {
 }
 
 TEST(CheckCudaErrorsNoSyncTest, AssertInKernelDetectedOnHost) {
-  ASSERT_NO_THROW(check_last_cuda_error());
+  ASSERT_NO_THROW(check_last_cuda_error_sync_device());
 
   kernel_assert_false<<<1, 1>>>();
   // At this point, `check_last_cuda_error_no_sync` might or might not throw,

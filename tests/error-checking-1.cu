@@ -20,7 +20,7 @@ __global__ void kernel_assert_false() {
 }
 
 TEST(CheckCudaErrorsTest, AssertInKernelDetectedOnHost) {
-  ASSERT_NO_THROW(check_last_cuda_error());
+  ASSERT_NO_THROW(check_last_cuda_error_sync_device());
 
   kernel_assert_false<<<1, 1>>>();
   EXPECT_THROW({
@@ -28,7 +28,7 @@ TEST(CheckCudaErrorsTest, AssertInKernelDetectedOnHost) {
 // Use a line directive (https://gcc.gnu.org/onlinedocs/cpp/Preprocessor-Output.html)
 // to stabilize the expected exception message.
 # 42 "foo/bar.cu" 1
-      check_last_cuda_error();
+      check_last_cuda_error_sync_device();
     } catch(const CudaError& ex) {
       EXPECT_STREQ(
         ex.what(),

@@ -62,22 +62,28 @@ inline void check_cuda_error_(const cudaError_t error, const char* file, const u
   }
 }
 
-#define check_cuda_error(e) check_cuda_error_(e, __FILE__, __LINE__)
-
 HOST_DEVICE_DECORATORS
 inline void check_last_cuda_error_no_sync_(const char* file, const unsigned line) {
   check_cuda_error_(cudaGetLastError(), file, line);
 }
 
-#define check_last_cuda_error_no_sync() check_last_cuda_error_no_sync_(__FILE__, __LINE__)
-
 HOST_DEVICE_DECORATORS
-inline void check_last_cuda_error_(const char* const file, const unsigned line) {
+inline void check_last_cuda_error_sync_device_(const char* const file, const unsigned line) {
   cudaDeviceSynchronize();
   check_last_cuda_error_no_sync_(file, line);
 }
 
-#define check_last_cuda_error() check_last_cuda_error_(__FILE__, __LINE__)
+HOST_DEVICE_DECORATORS
+inline void check_last_cuda_error_sync_stream_(cudaStream_t stream, const char* const file, const unsigned line) {
+  cudaStreamSynchronize(stream);
+  check_last_cuda_error_no_sync_(file, line);
+}
+
+#define check_cuda_error(e) check_cuda_error_(e, __FILE__, __LINE__)
+
+#define check_last_cuda_error_no_sync() check_last_cuda_error_no_sync_(__FILE__, __LINE__)
+#define check_last_cuda_error_sync_stream(stream) check_last_cuda_error_sync_stream_(stream, __FILE__, __LINE__)
+#define check_last_cuda_error_sync_device() check_last_cuda_error_sync_device_(__FILE__, __LINE__)
 
 /*                   *
  * Memory management *

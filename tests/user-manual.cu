@@ -37,7 +37,7 @@ TEST(UserManual, BadMultiDimArray) {
 
   // BEGIN BadMultiDimArray-call
   kernel<<<1, 1>>>(data, width, height);
-  check_last_cuda_error();
+  check_last_cuda_error_sync_device();
   // END BadMultiDimArray-call
 
   // BEGIN BadMultiDimArray-free
@@ -69,7 +69,7 @@ TEST(UserManual, GoodMultiDimArray) {
 
   // BEGIN GoodMultiDimArray-call
   kernel<<<1, 1>>>(ref(data));
-  check_last_cuda_error();
+  check_last_cuda_error_sync_device();
   // END GoodMultiDimArray-call
 }
 
