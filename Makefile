@@ -48,9 +48,10 @@ cpplint_sentinel_files := $(patsubst %,build/cpplint/%.cpplint.ok,$(lintable_sou
 # 'cuda-memcheck' fails on processes that 'assert' on device, so we don't run it on 'error-checking-*' tests
 unit_test_sentinel_files := \
     $(patsubst %.cu,build/debug/%.plain.ok,$(cuda_unit_test_source_files)) \
+    $(patsubst %.cpp,build/debug/%.plain.ok,$(cpp_unit_test_source_files))
+memcheck_test_sentinel_files := \
     $(patsubst %.cu,build/debug/%.valgrind-memcheck.ok,$(cuda_unit_test_source_files)) \
     $(patsubst %.cu,build/debug/%.cuda-memcheck.ok,$(filter-out tests/error-checking-%.cu,$(cuda_unit_test_source_files))) \
-    $(patsubst %.cpp,build/debug/%.plain.ok,$(cpp_unit_test_source_files)) \
     $(patsubst %.cpp,build/debug/%.valgrind-memcheck.ok,$(cpp_unit_test_source_files))
 example_sentinel_files := $(patsubst %.cu,build/release/%.ok,$(cuda_example_source_files))
 
@@ -97,6 +98,9 @@ $(foreach file,$(non_compilation_includes),$(eval include $(file)))
 build/deps/%.non-compilation.deps: %
 	@mkdir -p $(dir $@)
 	@builder/make-non-compilation-tests-deps.py $^ >$@
+
+.PHONY: memcheck-tests
+memcheck-tests: $(memcheck_test_sentinel_files)
 
 # Examples
 # ========

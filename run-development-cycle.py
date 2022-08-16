@@ -2,6 +2,7 @@
 
 import multiprocessing
 import re
+import socket
 import subprocess
 
 
@@ -11,7 +12,10 @@ def main():
         re.compile(r"// (BEGIN|END) GENERATED SECTION: (.*)"),
         {class_.key: class_ for class_ in [ArraysAndArrayViewSection]},
     )
-    subprocess.run(["./make.sh", f"-j{multiprocessing.cpu_count()}"], check=True)
+    targets = ["default"]
+    if socket.gethostname() in ["sam"]:
+        targets.append("memcheck-tests")
+    subprocess.run(["./make.sh", f"-j{multiprocessing.cpu_count()}"] + targets, check=True)
     subprocess.run(["./make.sh", "-j1", "examples"], check=True)
     regenerate(
         "README.md",
