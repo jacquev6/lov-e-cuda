@@ -1361,7 +1361,7 @@ struct GridFactory1D {
 
 #ifdef __NVCC__
   __device__ static unsigned x() {
-    assert(blockDim.x == BLOCKDIM_X);
+    assert(::blockDim.x == BLOCKDIM_X);
     return blockIdx.x * BLOCKDIM_X + threadIdx.x;
   }
 #endif  // __NVCC__
@@ -1393,12 +1393,12 @@ struct GridFactory2D {
 
 #ifdef __NVCC__
   __device__ static unsigned x() {
-    assert(blockDim.x == BLOCKDIM_X);
+    assert(::blockDim.x == BLOCKDIM_X);
     return blockIdx.x * BLOCKDIM_X + threadIdx.x;
   }
 
   __device__ static unsigned y() {
-    assert(blockDim.y == BLOCKDIM_Y);
+    assert(::blockDim.y == BLOCKDIM_Y);
     return blockIdx.y * BLOCKDIM_Y + threadIdx.y;
   }
 #endif  // __NVCC__
@@ -1430,17 +1430,17 @@ struct GridFactory3D {
 
 #ifdef __NVCC__
   __device__ static unsigned x() {
-    assert(blockDim.x == BLOCKDIM_X);
+    assert(::blockDim.x == BLOCKDIM_X);
     return blockIdx.x * BLOCKDIM_X + threadIdx.x;
   }
 
   __device__ static unsigned y() {
-    assert(blockDim.y == BLOCKDIM_Y);
+    assert(::blockDim.y == BLOCKDIM_Y);
     return blockIdx.y * BLOCKDIM_Y + threadIdx.y;
   }
 
   __device__ static unsigned z() {
-    assert(blockDim.z == BLOCKDIM_Z);
+    assert(::blockDim.z == BLOCKDIM_Z);
     return blockIdx.z * BLOCKDIM_Z + threadIdx.z;
   }
 #endif  // __NVCC__
