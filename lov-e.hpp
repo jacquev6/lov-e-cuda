@@ -118,7 +118,7 @@ class Host {
         // - 64-bits integer: 7378697629483820646
         // - IEEE 754 float: 2.72008e+23
         // - IEEE 754 double: 1.9035985662552932e+185
-        memset(n, 0x66, p);
+        force_memset(n, 0x66, p);
       #endif
       return p;
     }
@@ -180,6 +180,10 @@ class Device {
     } else {
       T* p;
       check_cuda_error(cudaMalloc(&p, n * sizeof(T)));
+      #if !defined(NDEBUG) && !defined(__CUDA_ARCH__)
+        // See comment in Host::force_alloc
+        force_memset(n, 0x66, p);
+      #endif
       return p;
     }
   }
