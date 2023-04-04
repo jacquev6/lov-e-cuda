@@ -10,6 +10,7 @@
 
 #include <cassert>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <exception>
 #include <type_traits>
